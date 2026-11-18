@@ -122,3 +122,5 @@ public sealed record 公開範囲変更要求(
     [property: JsonPropertyName("actor")] string? 実行者,
     [property: JsonPropertyName("visibility")] 公開範囲? 公開範囲
 );
+
+public partial class Program { }
