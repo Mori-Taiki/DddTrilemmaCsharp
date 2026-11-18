@@ -100,3 +100,14 @@ public sealed record フォロー確認が必要(ストーリー 対象, string 
             : new 拒否(拒否理由.フォローが必要);
 }
 ```
+
+### コード整形
+
+CSharpier 1.4.0 と `.editorconfig` で改行・インデントを揃えています。
+長い引数リストやクエリは折り返し、処理のまとまりの間には空行を入れます。
+
+```bash
+dotnet tool restore
+dotnet csharpier format .
+dotnet csharpier check .
+```
