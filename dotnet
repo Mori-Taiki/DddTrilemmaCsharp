@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+set -euo pipefail
+export DOTNET_ROOT=/workspace/.dotnet
+export DOTNET_CLI_HOME=/workspace/.dotnet-home
+export NUGET_PACKAGES=/workspace/.nuget/packages
+exec "$DOTNET_ROOT/dotnet" "$@"
