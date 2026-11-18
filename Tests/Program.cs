@@ -10,58 +10,58 @@ var options = new DbContextOptionsBuilder<AppDb>().UseSqlite(connection).Options
 var factory = new Factory(options);
 await using var db = new AppDb(options);
 await db.Database.EnsureCreatedAsync();
-foreach (var author in new[] { false, true })
-foreach (var visibility in Enum.GetValues<Visibility>())
-foreach (var price in Enum.GetValues<Price>())
-foreach (var follow in new[] { false, true })
-foreach (var vip in new[] { false, true })
-foreach (var purchase in new[] { false, true })
+foreach (var 作者本人 in new[] { false, true })
+foreach (var 公開範囲 in Enum.GetValues<公開範囲>())
+foreach (var 料金 in Enum.GetValues<料金区分>())
+foreach (var フォローしている in new[] { false, true })
+foreach (var VIPである in new[] { false, true })
+foreach (var 購入済み in new[] { false, true })
 {
-    var story = Story.Create("story", "author", visibility, price);
-    var viewer = author ? "author" : "reader";
-    var expected = author || ((visibility == Visibility.Public || follow) && (price == Price.Free || vip || purchase));
-    var expectedCalls = author ? 0 : (visibility == Visibility.Followers ? 1 : 0) + ((visibility == Visibility.Public || follow) && price == Price.Paid ? (vip ? 1 : 2) : 0);
-    var fake = new Facts(follow, vip, purchase);
-    var result = await new ViewingService(fake).Evaluate(story, viewer, default);
-    Check(result.Allowed == expected && result.FactQueries == expectedCalls && fake.Calls == expectedCalls, "Decision table / short circuit");
-    await db.Purchases.ExecuteDeleteAsync(); await db.Follows.ExecuteDeleteAsync(); await db.Members.ExecuteDeleteAsync(); await db.Stories.ExecuteDeleteAsync();
-    db.ChangeTracker.Clear(); db.Stories.Add(story);
-    if (follow) db.Follows.Add(new() { Viewer = viewer, Author = "author" });
-    if (vip) db.Members.Add(new() { Viewer = viewer, Vip = true });
-    if (purchase) db.Purchases.Add(new() { Viewer = viewer, StoryId = "story" });
+    var 対象 = ストーリー.投稿する("story", "author", 公開範囲, 料金);
+    var 閲覧者 = 作者本人 ? "author" : "reader";
+    var 期待する許可 = 作者本人 || ((公開範囲 == 公開範囲.全体公開 || フォローしている) && (料金 == 料金区分.無料 || VIPである || 購入済み));
+    var 期待する取得回数 = 作者本人 ? 0 : (公開範囲 == 公開範囲.フォロワー限定 ? 1 : 0) + ((公開範囲 == 公開範囲.全体公開 || フォローしている) && 料金 == 料金区分.有料 ? (VIPである ? 1 : 2) : 0);
+    var 偽物の事実取得 = new 偽物の閲覧事実取得(フォローしている, VIPである, 購入済み);
+    var 結果 = await new 閲覧判定サービス(偽物の事実取得).判定する(対象, 閲覧者, default);
+    Check(結果.許可 == 期待する許可 && 結果.事実取得回数 == 期待する取得回数 && 偽物の事実取得.呼出回数 == 期待する取得回数, "Decision table / short circuit");
+    await db.購入一覧.ExecuteDeleteAsync(); await db.フォロー関係.ExecuteDeleteAsync(); await db.会員一覧.ExecuteDeleteAsync(); await db.ストーリー一覧.ExecuteDeleteAsync();
+    db.ChangeTracker.Clear(); db.ストーリー一覧.Add(対象);
+    if (フォローしている) db.フォロー関係.Add(new() { 閲覧者 = 閲覧者, 作者 = "author" });
+    if (VIPである) db.会員一覧.Add(new() { 閲覧者 = 閲覧者, VIPである = true });
+    if (購入済み) db.購入一覧.Add(new() { 閲覧者 = 閲覧者, ストーリーID = "story" });
     await db.SaveChangesAsync();
-    var actual = await new ViewingService(new EfViewingFacts(factory)).Evaluate(story, viewer, default);
-    Check(actual.Allowed == result.Allowed && actual.Reason == result.Reason && actual.Trace.SequenceEqual(result.Trace), "SQLite contract");
+    var 実際 = await new 閲覧判定サービス(new EfCore閲覧事実取得(factory)).判定する(対象, 閲覧者, default);
+    Check(実際.許可 == 結果.許可 && 実際.理由 == 結果.理由 && 実際.判定経路.SequenceEqual(結果.判定経路), "SQLite contract");
 }
 db.ChangeTracker.Clear();
-var entity = await db.Stories.SingleAsync();
-Check(entity.AuthorId == "author", "POCO materialization");
-var original = entity.Visibility;
-var target = original == Visibility.Public ? Visibility.Followers : Visibility.Public;
-Check(entity.ChangeVisibility(target, "guest") is ChangeDenied && entity.Visibility == original, "Rejected mutation");
-Check(entity.ChangeVisibility(target, "author") is Changed, "Accepted mutation");
+var 変更対象 = await db.ストーリー一覧.SingleAsync();
+Check(変更対象.作者 == "author", "POCO materialization");
+var 変更前 = 変更対象.公開範囲;
+var 変更先 = 変更前 == 公開範囲.全体公開 ? 公開範囲.フォロワー限定 : 公開範囲.全体公開;
+Check(変更対象.公開範囲を変える(変更先, "guest") is 変更拒否 && 変更対象.公開範囲 == 変更前, "Rejected mutation");
+Check(変更対象.公開範囲を変える(変更先, "author") is 変更できた, "Accepted mutation");
 await db.SaveChangesAsync(); db.ChangeTracker.Clear();
-entity = await db.Stories.SingleAsync();
-Check(entity.Visibility == target, "Persisted change");
-Check(entity.ChangeVisibility(target, "author") is ChangeDenied { Reason: "AlreadySet" }, "Duplicate change");
+変更対象 = await db.ストーリー一覧.SingleAsync();
+Check(変更対象.公開範囲 == 変更先, "Persisted change");
+Check(変更対象.公開範囲を変える(変更先, "author") is 変更拒否 { 理由: 変更拒否理由.既にその公開範囲 }, "Duplicate change");
 try
 {
-    await new ViewingService(new BrokenFacts()).Evaluate(Story.Create("s", "a", Visibility.Public, Price.Paid), "v", default);
+    await new 閲覧判定サービス(new 失敗する閲覧事実取得()).判定する(ストーリー.投稿する("s", "a", 公開範囲.全体公開, 料金区分.有料), "v", default);
     throw new Exception("Technical error swallowed");
 }
 catch (IOException) { checks++; }
 Console.WriteLine($"PASS: {checks} assertions; 64 scenarios through fake + real SQLite; command persistence and technical failure.");
 sealed class Factory(DbContextOptions<AppDb> options) : IDbContextFactory<AppDb> { public AppDb CreateDbContext() => new(options); }
-sealed class Facts(bool follow, bool vip, bool purchase) : IViewingFacts
+sealed class 偽物の閲覧事実取得(bool フォローしている, bool VIPである, bool 購入済み) : 閲覧事実取得
 {
-    public int Calls;
-    public Task<bool> Follows(string v, string a, CancellationToken ct) { Calls++; return Task.FromResult(follow); }
-    public Task<bool> IsVip(string v, CancellationToken ct) { Calls++; return Task.FromResult(vip); }
-    public Task<bool> Purchased(string v, string s, CancellationToken ct) { Calls++; return Task.FromResult(purchase); }
+    public int 呼出回数;
+    public Task<bool> フォローしているか(string v, string a, CancellationToken ct) { 呼出回数++; return Task.FromResult(フォローしている); }
+    public Task<bool> VIPか(string v, CancellationToken ct) { 呼出回数++; return Task.FromResult(VIPである); }
+    public Task<bool> 購入済みか(string v, string s, CancellationToken ct) { 呼出回数++; return Task.FromResult(購入済み); }
 }
-sealed class BrokenFacts : IViewingFacts
+sealed class 失敗する閲覧事実取得 : 閲覧事実取得
 {
-    public Task<bool> Follows(string v, string a, CancellationToken ct) => throw new IOException("DB unavailable");
-    public Task<bool> IsVip(string v, CancellationToken ct) => throw new IOException("DB unavailable");
-    public Task<bool> Purchased(string v, string s, CancellationToken ct) => throw new IOException("DB unavailable");
+    public Task<bool> フォローしているか(string v, string a, CancellationToken ct) => throw new IOException("DB unavailable");
+    public Task<bool> VIPか(string v, CancellationToken ct) => throw new IOException("DB unavailable");
+    public Task<bool> 購入済みか(string v, string s, CancellationToken ct) => throw new IOException("DB unavailable");
 }

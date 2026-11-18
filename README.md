@@ -22,13 +22,13 @@ curl http://localhost:5080/stories
 curl 'http://localhost:5080/stories/followers-paid/view?viewer=vip'
 curl -X PUT http://localhost:5080/stories/public-free/visibility \
   -H 'Content-Type: application/json' \
-  -d '{"actor":"author","visibility":"Followers"}'
+  -d '{"actor":"author","visibility":"フォロワー限定"}'
 ```
 
 閲覧判定レスポンス例：
 
 ```json
-{"allowed":true,"reason":null,"trace":["NeedFollow","NeedMembership","Allowed"],"factQueries":2}
+{"allowed":true,"reason":null,"trace":["フォロー確認が必要","会員確認が必要","許可"],"factQueries":2}
 ```
 
 `factQueries` は事実取得ポートの呼び出し数で、ストーリー取得のSELECTを含みません。現実装では各呼び出しが1回の `EXISTS` クエリです。SQLログと照合できます。拒否でも trace と理由を返します。
@@ -36,8 +36,8 @@ curl -X PUT http://localhost:5080/stories/public-free/visibility \
 | viewer | followers-paid の結果 | 追加クエリ数 |
 |---|---|---:|
 | author | 許可（作者） | 0 |
-| guest | FollowRequired | 1 |
-| follower | PurchaseRequired | 3 |
+| guest | フォローが必要 | 1 |
+| follower | 購入が必要 | 3 |
 | vip | 許可（フォロー＋VIP） | 2 |
 | buyer | 許可（フォロー＋購入） | 3 |
 
@@ -47,12 +47,12 @@ HTTP: 許可200、業務拒否403、変更済み409、対象なし404、入力�
 
 ## 構成と処理の流れ
 
-- `Domain/Story.cs`: POCOエンティティ、純粋な判定、再開メソッド、公開範囲変更。EF/HTTPへの参照なし。
-- `Api/ViewingService.cs`: 必要とされた事実を取得して判定を再開。業務分岐はドメイン側。
+- `Domain/ストーリー.cs`: POCOエンティティ、純粋な判定、再開メソッド、公開範囲変更。EF/HTTPへの参照なし。
+- `Api/閲覧判定サービス.cs`: 必要とされた事実を取得して判定を再開。業務分岐はドメイン側。
 - `Api/Database.cs`: DbContext、Fluent API、事実取得ポートのEF実装、初期データ。
 - `Api/Program.cs`: DIとHTTP境界。Queryはストーリー取得→判定ループ、Commandは追跡付き取得→ドメイン変更→成功時だけSaveChanges。
 
-Queryは各事実取得内でDbContextを生成・破棄します。CommandはリクエストのDbContextがUnit of Workです。Storyを永続化モデルとしても使い、private setterをFluent API経由で復元します。元記事のコンストラクタの自己代入になる箇所は採用せず、ファクトリで正しく初期化しています。
+Queryは各事実取得内でDbContextを生成・破棄します。CommandはリクエストのDbContextがUnit of Workです。ストーリーを永続化モデルとしても使い、private setterをFluent API経由で復元します。元記事のコンストラクタの自己代入になる箇所は採用せず、ファクトリで正しく初期化しています。
 
 ## テスト
 
@@ -77,3 +77,9 @@ HTTPテストは入力検証、404、判定の打ち切り、公開範囲変更�
 ## この環境での確認結果
 
 .NET SDK 11.0.100 / EF Core SQLite 11.0.0。ビルドは警告・エラー0件。134 assertionとHTTPテストが成功。別の最小プロジェクトでclosed階層のケースを1つ漏らし、CS8509が実際にビルドエラーになることも確認しました。
+
+## 日本語によるモデリング
+
+記事の業務語彙をそのまま識別子に使います。`閲覧.開始(対象, 閲覧者)` が `フォロー確認が必要` などを返し、取得した事実を `結果(bool)` に渡して再開します。公開範囲の変更も `対象.公開範囲を変える(新しい範囲, 実行者)` と書き、`変更できた` / `変更拒否` を返します。拒否理由は `拒否理由.フォローが必要` などの日本語の列挙型です。
+
+HTTPのパス・JSONキーは英語を維持し、判定経路と拒否理由は日本語です。公開範囲入力は `全体公開` / `フォロワー限定` です。DBのテーブル・列・列挙値も日本語のモデルに従います。英語版DBへの互換処理はありません。以前のDBを使っている場合は、別の `--DatabasePath` を指定して新規作成してください。ドメインにJSON/EF属性はありません。
