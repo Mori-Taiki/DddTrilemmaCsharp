@@ -24,20 +24,20 @@ public sealed class AppDb(DbContextOptions<AppDb> options) : DbContext(options)
 }
 public sealed class EfCore閲覧事実取得(IDbContextFactory<AppDb> factory) : 閲覧事実取得
 {
-    public async Task<bool> フォローしているか(string 閲覧者, string 作者本人, CancellationToken ct)
+    public async Task<bool> フォローしているか(string viewer, string author, CancellationToken ct)
     {
         await using var db = await factory.CreateDbContextAsync(ct);
-        return await db.フォロー関係.AsNoTracking().AnyAsync(x => x.閲覧者 == 閲覧者 && x.作者 == 作者本人, ct);
+        return await db.フォロー関係.AsNoTracking().AnyAsync(x => x.閲覧者 == viewer && x.作者 == author, ct);
     }
-    public async Task<bool> VIPか(string 閲覧者, CancellationToken ct)
+    public async Task<bool> VIPか(string viewer, CancellationToken ct)
     {
         await using var db = await factory.CreateDbContextAsync(ct);
-        return await db.会員一覧.AsNoTracking().AnyAsync(x => x.閲覧者 == 閲覧者 && x.VIPである, ct);
+        return await db.会員一覧.AsNoTracking().AnyAsync(x => x.閲覧者 == viewer && x.VIPである, ct);
     }
-    public async Task<bool> 購入済みか(string 閲覧者, string 対象, CancellationToken ct)
+    public async Task<bool> 購入済みか(string viewer, string storyId, CancellationToken ct)
     {
         await using var db = await factory.CreateDbContextAsync(ct);
-        return await db.購入一覧.AsNoTracking().AnyAsync(x => x.閲覧者 == 閲覧者 && x.ストーリーID == 対象, ct);
+        return await db.購入一覧.AsNoTracking().AnyAsync(x => x.閲覧者 == viewer && x.ストーリーID == storyId, ct);
     }
 }
 public static class 初期データ
@@ -50,7 +50,7 @@ public static class 初期データ
             ストーリー.投稿する("public-paid", "author", 公開範囲.全体公開, 料金区分.有料),
             ストーリー.投稿する("followers-free", "author", 公開範囲.フォロワー限定, 料金区分.無料),
             ストーリー.投稿する("followers-paid", "author", 公開範囲.フォロワー限定, 料金区分.有料));
-        foreach (var 閲覧者 in new[] { "follower", "vip", "buyer" }) db.フォロー関係.Add(new() { 閲覧者 = 閲覧者, 作者 = "author" });
+        foreach (var viewer in new[] { "follower", "vip", "buyer" }) db.フォロー関係.Add(new() { 閲覧者 = viewer, 作者 = "author" });
         db.会員一覧.Add(new() { 閲覧者 = "vip", VIPである = true });
         foreach (var id in new[] { "public-paid", "followers-paid" }) db.購入一覧.Add(new() { 閲覧者 = "buyer", ストーリーID = id });
         await db.SaveChangesAsync();
