@@ -1,5 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
+# CodespacesやローカルにSDKがある場合は、その環境の設定を使う。
+sdk_command="$(command -v dotnet || true)"
+if [[ -n "$sdk_command" && "$(readlink -f "$sdk_command")" != "$(readlink -f "$0")" ]]; then
+    exec "$sdk_command" "$@"
+fi
+
+# この共有作業環境に導入したSDKへのフォールバック。
 export DOTNET_ROOT=/workspace/.dotnet
 export DOTNET_CLI_HOME=/workspace/.dotnet-home
 export NUGET_PACKAGES=/workspace/.nuget/packages

@@ -2,6 +2,29 @@
 
 [元記事](https://github.com/Mori-Taiki/MyBlog/blob/main/articles/ddd-trilemma-csharp-union-efcore.md)の Query / Command を、.NET 11・C# 15・EF Core 11・SQLite で実装した実験用アプリです。`closed record` をそのまま使い、CS8509 をエラー化しています。
 
+## GitHub Codespacesで起動
+
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/Mori-Taiki/DddTrilemmaCsharp)
+
+1. 上のボタン、またはGitHubの **Code → Codespaces → Create codespace on main** を開きます。
+2. 初回はコンテナ作成後、依存関係の復元とビルドが自動で実行されます。
+3. ターミナルで次のコマンドを実行します（**Tasks: Run Task → APIを起動** でも同じです）。
+
+```bash
+dotnet run --project Api -- --urls http://0.0.0.0:5080
+```
+
+**Ports** タブの `5080 / DDD API` からブラウザで開きます。転送URLの末尾に `/stories` や `/stories/followers-paid/view?viewer=vip` を付けると結果を確認できます。ターミナルでは通常どおり `curl http://localhost:5080/stories` が使えます。ポートは既定のPrivateのまま利用できます。
+
+```bash
+dotnet test Tests/Tests.csproj
+python3 scripts/check_exhaustiveness.py
+```
+
+.NET SDK 11.0.100・Git・curl・Pythonは開発コンテナに含まれます。SQLiteはNuGetパッケージに同梱されるのでDBサーバーは不要です。`./dotnet` もCodespacesのSDKを利用します。
+
+`Api/app.db` はワークスペース内に保存され、Codespaceの停止・再開でも保持されます。Codespaceを削除すると失われます。既存のCodespaceにこの設定を取り込んだ場合は **Codespaces: Rebuild Container** を実行してください。SDKを更新する際は `global.json` と `.devcontainer/Dockerfile` のバージョンを揃えます。
+
 ## 起動
 
 この環境では SDK を `/workspace/.dotnet` に導入済みです。

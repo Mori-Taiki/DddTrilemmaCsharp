@@ -1,0 +1,26 @@
+{
+  "name": "DDD Trilemma — C# / SQLite",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": "."
+  },
+  "remoteUser": "vscode",
+  "postCreateCommand": "bash .devcontainer/setup.sh",
+  "waitFor": "postCreateCommand",
+  "forwardPorts": [5080],
+  "portsAttributes": {
+    "5080": {
+      "label": "DDD API",
+      "protocol": "http",
+      "onAutoForward": "notify"
+    }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": ["ms-dotnettools.csharp"],
+      "settings": {
+        "dotnet.defaultSolution": "DddDemo.sln"
+      }
+    }
+  }
+}

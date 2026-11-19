@@ -1,0 +1,32 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "APIを起動",
+      "type": "process",
+      "command": "dotnet",
+      "args": ["run", "--project", "Api", "--", "--urls", "http://0.0.0.0:5080"],
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "dedicated" }
+    },
+    {
+      "label": "テストを実行",
+      "type": "process",
+      "command": "dotnet",
+      "args": ["test", "Tests/Tests.csproj"],
+      "options": { "cwd": "${workspaceFolder}" },
+      "group": "test",
+      "problemMatcher": "$msCompile"
+    },
+    {
+      "label": "ビルド",
+      "type": "process",
+      "command": "dotnet",
+      "args": ["build", "DddDemo.sln"],
+      "options": { "cwd": "${workspaceFolder}" },
+      "group": { "kind": "build", "isDefault": true },
+      "problemMatcher": "$msCompile"
+    }
+  ]
+}
