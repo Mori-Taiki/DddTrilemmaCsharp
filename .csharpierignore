@@ -1,3 +1,5 @@
 # ドメインの宣言は、手動で整えたコンパクトなグループ化を維持する。
 Domain/ストーリー.cs
 Domain/閲覧.cs
+Domain/ストーリーの値.cs
+MutableDomain/ストーリー.cs

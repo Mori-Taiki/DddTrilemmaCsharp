@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <TargetFramework>net11.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <WarningsAsErrors>CS8509</WarningsAsErrors>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../MutableDomain/MutableDomain.csproj" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="11.0.0" />
+    <Compile Include="../Api/Program.cs" Link="共通/Program.cs" />
+    <Compile Include="../Api/境界値.cs" Link="共通/境界値.cs" />
+    <Compile Include="../Api/閲覧判定サービス.cs" Link="共通/閲覧判定サービス.cs" />
+    <Compile Include="../Api/公開範囲変更要求.cs" Link="共通/公開範囲変更要求.cs" />
+  </ItemGroup>
+</Project>

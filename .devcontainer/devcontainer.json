@@ -7,10 +7,15 @@
   "remoteUser": "vscode",
   "postCreateCommand": "bash .devcontainer/setup.sh",
   "waitFor": "postCreateCommand",
-  "forwardPorts": [5080],
+  "forwardPorts": [5080, 5081],
   "portsAttributes": {
     "5080": {
-      "label": "DDD API",
+      "label": "DDD API（不変モデル）",
+      "protocol": "http",
+      "onAutoForward": "notify"
+    },
+    "5081": {
+      "label": "DDD API（可変モデル）",
       "protocol": "http",
       "onAutoForward": "notify"
     }

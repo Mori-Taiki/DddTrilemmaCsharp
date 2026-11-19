@@ -1,17 +1,5 @@
 namespace Demo.Domain;
 
-public closed record 公開範囲
-{
-    public sealed record 全体公開 : 公開範囲;
-    public sealed record フォロワー限定 : 公開範囲;
-}
-
-public closed record 料金区分
-{
-    public sealed record 無料 : 料金区分;
-    public sealed record 有料 : 料金区分;
-}
-
 public sealed record ストーリー
 {
     public ストーリーID ID { get; }
@@ -42,8 +30,6 @@ public sealed record ストーリー
         return new 変更できた(new ストーリー(ID, 作者, newVisibility, 料金));
     }
 }
-
-public enum 変更拒否理由 { 作者ではない, 既にその公開範囲 }
 
 public closed record 公開範囲変更結果;
 public sealed record 変更できた(ストーリー 変更後) : 公開範囲変更結果;

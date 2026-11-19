@@ -62,15 +62,13 @@ C# 15の `union` 宣言との違いは、ケースの表現と初期値の扱い
 
 判定結果に加え、入力も型で区別します。作品を示す `ストーリーID` と、人を示す `利用者ID` は別の型です。作者・閲覧者・実行者には共通の `利用者ID` を使い、空のIDや未知の公開範囲を入口で拒否します。判定の途中では、検証済みの値を扱えます。
 
-## 状態変更も値で表し、保存はEF Coreに任せる
+## 状態変更を値で返すか、エンティティ自身を変えるか
 
-ここまでの閲覧判定は、事実を読んで結果を返す **Query** です。次に、公開範囲を変える **Command** を考えます。
+ここまでの閲覧判定は、事実を読んで結果を返す **Query** です。次に、公開範囲を変える **Command** を考えます。このリポジトリでは、同じ業務ルールを2通りのモデルで比較できます。
 
-変更も「現在の状態と変更要求から、結果を返す」関数にします。`ストーリー` は不変で、`公開範囲を変える` は元の状態を書き換えず、`変更できた(変更後)` または `変更拒否(理由)` を返します。閲覧判定が途中で保持するストーリーも不変です。こうして業務の状態と遷移を型・値・純粋関数で表すことが、この実装の**関数型ドメインモデリング**です。
+不変版の `ストーリー` は、`公開範囲を変える` で元の状態を書き換えず、`変更できた(変更後)` または `変更拒否(理由)` を返します。閲覧判定が途中で保持するストーリーも不変です。業務の状態と遷移を型・値・純粋関数で表す、**関数型ドメインモデリング**の実装です。
 
-残るのは、変更後の状態をDBへ保存する処理です。EF Coreは通常のC#オブジェクト（POCO）にFluent APIで永続化を後付けでき、DbContextが変更追跡と保存の単位（Unit of Work）を担います。可変なドメインエンティティを直接追跡させるのも自然なDDDの実践であり、DbSetをそのまま包む汎用Repositoryは必須ではありません。
-
-今回はドメインの不変性を優先して、EFが追跡する可変な `ストーリー行` を別に用意しました。成功時だけ変更後の状態を行に適用して保存します。不変性を保つため、変換のコードを持つ設計です。
+EF Coreが追跡するのは別の可変な `ストーリー行` で、成功時だけ変更後の状態を適用します。不変性を保つために、ドメインと永続化モデルの間の変換を持ちます。
 
 ```csharp
 var result = row.ドメインに戻す().公開範囲を変える(newVisibility, actor);
@@ -81,9 +79,28 @@ if (result is 変更できた changed)
 }
 ```
 
-Query側では、EF Coreを「フォローしているか」などの事実取得ポートの内側に置き、テーブル構造を業務の質問へ変換します。Command側では、アプリケーションがDbContextを直接使い、変更の適用と保存を管理します。EF Coreが担う役割に合わせた境界です。
+一方、**EF Coreの変更追跡をそのまま使う**方法もあります。[Microsoftの.NET Blog](https://devblogs.microsoft.com/dotnet/announcing-entity-framework-core-1-1/)では、フィールドのマッピングによって読み取り専用プロパティやメソッド経由のアクセスに対応する機能が紹介されています。[Microsoft掲載の「DDD-Friendlier EF Core 2.0」](https://learn.microsoft.com/en-us/archive/msdn-magazine/2017/september/data-points-ddd-friendlier-ef-core-2-0)では、カプセル化したドメインを直接マッピングできるなら、別の永続化モデルを作らなくてよいという考え方が説明されています。
 
-このサンプルのQueryは単件判定です。一覧へ広げる際は事実の一括取得を、判定中にデータが変わってはいけない用途では読み取りの一貫性を検討する必要があります。
+これに沿う可変版では、`ストーリー` を `class` にし、業務メソッドの中で自身の状態を変えます。プロパティは `private set` なので、呼び出し側からルールを飛ばして公開範囲を書き換えることはできません。ドメインにはEF Coreへの参照やDBアクセスを置かず、独自IDやclosed recordの列への変換はFluent APIに置きます。
+
+```csharp
+var story = await db.ストーリー一覧.SingleAsync(x => x.ID == storyId, ct);
+var result = story.公開範囲を変える(newVisibility, actor);
+if (result is 変更できた)
+    await db.SaveChangesAsync(ct);
+```
+
+[公式の変更追跡ドキュメント](https://learn.microsoft.com/en-us/ef/core/change-tracking/#tracking-from-queries)が説明する通り、同じDbContextで取得・変更・保存することで、EF Coreが変更を検出します。`Update` や行へのコピーは不要です。DbContextが保存の単位（Unit of Work）を担い、このサンプルではDbSetを包む汎用Repositoryも設けません。可変版のCommandは純粋関数ではありませんが、業務判断をドメインに集め、I/Oを外に置く構成は維持しています。
+
+| 比較する場所 | 不変版 | 可変版 |
+|---|---|---|
+| 状態と変更 | [Domain/ストーリー.cs](Domain/ストーリー.cs)：新しい状態を返す | [MutableDomain/ストーリー.cs](MutableDomain/ストーリー.cs)：自身を変更する |
+| EFの追跡対象 | [ストーリー行](Api/ストーリー行.cs) | [ストーリーを直接マッピング](MutableApi/Database.cs) |
+| 保存の呼び出し | [適用してから保存](Api/ストーリーAPI.cs) | [変更後にそのまま保存](MutableApi/ストーリーAPI.cs) |
+
+閲覧ルール・値オブジェクト・HTTPの仕様テストは、csprojのリンクで同じソースを両方のプロジェクトに取り込みます。同じ名前空間・型名を使いますが、各APIは対応する片方のドメインだけを参照する独立したアプリです。
+
+Queryはどちらも `AsNoTracking` で読み、「フォローしているか」などの事実取得ポートを通して判定します。可変版でも、取得したオブジェクトを判定中に変更しません。Commandは追跡して変更を保存する、Queryは読んで結果を返す、という役割の違いです。このサンプルは単件判定なので、一覧へ広げる際は事実の一括取得を、判定中のDB変更が許されない用途では読み取りの一貫性を検討します。
 
 ## 仕様の検証をさらに先へ進める
 
@@ -91,26 +108,32 @@ Query側では、EF Coreを「フォローしているか」などの事実取�
 
 この仕様と実装の関係をさらに進める方向として、[SoutherによるDDDトリレンマへのアプローチ](https://zenn.dev/kawasima/articles/souther-ddd-trilemma)があります。Decisionパターンでは途中状態を手で型にする必要がありますが、Southerは振る舞いの契約と合成可能性に注目します。入出力の関係を事後条件で表し、仕様例の不足を機械的に調べ、同じ仕様例で外部実装も検証します。
 
-現在は判断を値だけで、取得・保存を実SQLiteでテストしています。今後、両者を共通の仕様例から検証することが発展の方向です。
+現在はドメインの判断をメモリ上で、取得・保存を実SQLiteでテストし、両実装に同じHTTPの仕様テストを適用しています。今後、ドメインと外部実装を共通の契約から検証することが発展の方向です。
 
 ## 動かして確認する
 
 [GitHub Codespacesで開く](https://codespaces.new/Mori-Taiki/DddTrilemmaCsharp)と、SDKの準備・依存関係の復元・ビルドが自動で行われます。ローカルでは.NET SDK **11.0.100**を導入してcloneしてください。リポジトリ直下で起動します。
 
 ```bash
+# 不変モデル + 永続化用の行
 dotnet run --project Api -- --urls http://0.0.0.0:5080
+
+# 可変モデル + EF Coreの直接追跡（別ターミナルで起動）
+dotnet run --project MutableApi -- --urls http://0.0.0.0:5081
 ```
 
-Codespacesでは **Ports → 5080**、ローカルでは `http://localhost:5080` を開きます。`Api/app.db` は初回起動時にサンプルデータとともに作成され、DBサーバーの準備は不要です。別のターミナルで閲覧と変更を試せます。
+Codespacesでは **Ports → 5080 / 5081**、ローカルでは `http://localhost:5080` / `http://localhost:5081` を開きます。起動プロジェクトで切り替えられ、同時起動して比較することもできます。VS Codeにも両方の起動タスクがあります。
+
+初回起動時に、同じサンプルデータを持つ独立したSQLite DB（`Api/app.db` / `MutableApi/app.db`）を作ります。一方の変更は他方へ反映されません。次の例は不変版です。ポートを5081に変えると、同じリクエストで可変版を試せます。
 
 ```bash
 curl 'http://localhost:5080/stories/followers-paid/view?viewer=vip'
 curl -X PUT http://localhost:5080/stories/public-free/visibility \
   -H 'Content-Type: application/json' \
   -d '{"actor":"author","visibility":"フォロワー限定"}'
-dotnet test Tests/Tests.csproj
+dotnet test DddDemo.sln
 ```
 
 `viewer` を `guest`・`follower`・`vip`・`buyer`・`author` に変えると、結果・判定経路・追加クエリ数を比較できます。追加クエリ数には、最初のストーリー取得は含みません。利用者指定はデモ用で、認証ではありません。
 
-実装は [Domain](Domain) と [Api](Api)、仕様のテストは [Tests](Tests) にあります。ケース追加時のビルドエラーも `python3 scripts/check_exhaustiveness.py` で確認できます。
+テストは [Tests](Tests) と [MutableTests](MutableTests) にあります。可変版では、変更の保存・拒否時の不変性・追跡しない場合の挙動も実SQLiteで検証します。両版のケース追加時のビルドエラーは `python3 scripts/check_exhaustiveness.py` で確認できます。

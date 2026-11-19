@@ -2,7 +2,7 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "APIを起動",
+      "label": "APIを起動（不変モデル）",
       "type": "process",
       "command": "dotnet",
       "args": ["run", "--project", "Api", "--", "--urls", "http://0.0.0.0:5080"],
@@ -11,10 +11,19 @@
       "presentation": { "reveal": "always", "panel": "dedicated" }
     },
     {
+      "label": "APIを起動（可変モデル）",
+      "type": "process",
+      "command": "dotnet",
+      "args": ["run", "--project", "MutableApi", "--", "--urls", "http://0.0.0.0:5081"],
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "dedicated" }
+    },
+    {
       "label": "テストを実行",
       "type": "process",
       "command": "dotnet",
-      "args": ["test", "Tests/Tests.csproj"],
+      "args": ["test", "DddDemo.sln"],
       "options": { "cwd": "${workspaceFolder}" },
       "group": "test",
       "problemMatcher": "$msCompile"

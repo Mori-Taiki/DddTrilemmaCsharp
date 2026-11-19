@@ -1,9 +1,5 @@
 using System.Net;
 using System.Net.Http.Json;
-using Demo.Api;
-using Demo.Domain;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace Demo.Tests;
 
@@ -21,12 +17,13 @@ public sealed class Apiテスト
         );
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        using var scope = app.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<AppDb>();
-        var saved = await db.ストーリー一覧.AsNoTracking().SingleAsync(x => x.ID == "public-free");
-        Assert.Equal("author", saved.作者);
-        Assert.Equal("無料", saved.料金);
-        Assert.Equal("フォロワー限定", saved.公開範囲);
+        var stories = await client.GetFromJsonAsync<System.Text.Json.JsonElement[]>("/stories");
+        var saved = Assert.Single(stories!, story =>
+            story.GetProperty("id").GetString() == "public-free"
+        );
+        Assert.Equal("author", saved.GetProperty("authorId").GetString());
+        Assert.Equal("無料", saved.GetProperty("price").GetString());
+        Assert.Equal("フォロワー限定", saved.GetProperty("visibility").GetString());
         using var viewing = await client.GetAsync("/stories/public-free/view?viewer=guest");
         Assert.Equal(HttpStatusCode.Forbidden, viewing.StatusCode);
         var body = await viewing.Content.ReadFromJsonAsync<System.Text.Json.JsonElement>();
@@ -45,10 +42,11 @@ public sealed class Apiテスト
         );
 
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
-        using var scope = app.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<AppDb>();
-        var saved = await db.ストーリー一覧.AsNoTracking().SingleAsync(x => x.ID == "public-free");
-        Assert.Equal("全体公開", saved.公開範囲);
+        var stories = await client.GetFromJsonAsync<System.Text.Json.JsonElement[]>("/stories");
+        var saved = Assert.Single(stories!, story =>
+            story.GetProperty("id").GetString() == "public-free"
+        );
+        Assert.Equal("全体公開", saved.GetProperty("visibility").GetString());
     }
 
     [Fact]
