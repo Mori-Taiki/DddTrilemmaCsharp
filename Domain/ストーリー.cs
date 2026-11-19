@@ -1,27 +1,15 @@
 namespace Demo.Domain;
 
-public enum 公開範囲
-{
-    全体公開,
-    フォロワー限定,
-}
+public enum 公開範囲 { 全体公開, フォロワー限定 }
 
-public enum 料金区分
-{
-    無料,
-    有料,
-}
+public enum 料金区分 { 無料, 有料 }
 
 public sealed class ストーリー
 {
     private ストーリー() { }
-
     public string ID { get; private set; } = "";
-
     public string 作者 { get; private set; } = "";
-
     public 公開範囲 公開範囲 { get; private set; }
-
     public 料金区分 料金 { get; private set; }
 
     public static ストーリー 投稿する(
@@ -51,34 +39,20 @@ public sealed class ストーリー
     }
 }
 
-public enum 変更拒否理由
-{
-    作者ではない,
-    既にその公開範囲,
-}
-
+public enum 変更拒否理由 { 作者ではない, 既にその公開範囲 }
 public closed record 公開範囲変更結果;
-
 public sealed record 変更できた : 公開範囲変更結果;
-
 public sealed record 変更拒否(変更拒否理由 理由) : 公開範囲変更結果;
 
-public enum 拒否理由
-{
-    フォローが必要,
-    購入が必要,
-}
-
+public enum 閲覧拒否理由 { フォローが必要, 購入が必要 }
 public closed record 閲覧判定;
-
 public sealed record 許可 : 閲覧判定;
-
-public sealed record 拒否(拒否理由 理由) : 閲覧判定;
+public sealed record 拒否(閲覧拒否理由 理由) : 閲覧判定;
 
 public sealed record フォロー確認が必要(ストーリー 対象, string 閲覧者) : 閲覧判定
 {
     public 閲覧判定 結果(bool isFollowing) =>
-        isFollowing ? 閲覧.有料かどうか(対象, 閲覧者) : new 拒否(拒否理由.フォローが必要);
+        isFollowing ? 閲覧.有料かどうか(対象, 閲覧者) : new 拒否(閲覧拒否理由.フォローが必要);
 }
 
 public sealed record 会員確認が必要(ストーリー 対象, string 閲覧者) : 閲覧判定
@@ -89,7 +63,7 @@ public sealed record 会員確認が必要(ストーリー 対象, string 閲覧
 public sealed record 購入確認が必要(ストーリー 対象, string 閲覧者) : 閲覧判定
 {
     public 閲覧判定 結果(bool hasPurchased) =>
-        hasPurchased ? new 許可() : new 拒否(拒否理由.購入が必要);
+        hasPurchased ? new 許可() : new 拒否(閲覧拒否理由.購入が必要);
 }
 
 public static class 閲覧
