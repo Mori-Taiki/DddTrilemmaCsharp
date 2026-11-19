@@ -42,7 +42,11 @@ internal sealed class テスト用データベース : IAsyncDisposable, IDbCont
     public async Task 保存する(params object[] entities)
     {
         await using var db = CreateDbContext();
-        db.AddRange(entities);
+        db.AddRange(
+            entities.Select(entity =>
+                entity is ストーリー story ? ストーリー行.作成する(story) : entity
+            )
+        );
         await db.SaveChangesAsync();
     }
 

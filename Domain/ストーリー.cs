@@ -1,83 +1,57 @@
 namespace Demo.Domain;
 
-public enum 公開範囲 { 全体公開, フォロワー限定 }
-
-public enum 料金区分 { 無料, 有料 }
-
-public sealed class ストーリー
+public closed record 公開範囲
 {
-    private ストーリー() { }
-    public string ID { get; private set; } = "";
-    public string 作者 { get; private set; } = "";
-    public 公開範囲 公開範囲 { get; private set; }
-    public 料金区分 料金 { get; private set; }
+    public sealed record 全体公開 : 公開範囲;
+    public sealed record フォロワー限定 : 公開範囲;
+}
+
+public closed record 料金区分
+{
+    public sealed record 無料 : 料金区分;
+    public sealed record 有料 : 料金区分;
+}
+
+public sealed record ストーリー
+{
+    public ストーリーID ID { get; }
+    public 利用者ID 作者 { get; }
+    public 公開範囲 公開範囲 { get; }
+    public 料金区分 料金 { get; }
+
+    private ストーリー(ストーリーID id, 利用者ID author, 公開範囲 visibility, 料金区分 price)
+    {
+        ArgumentNullException.ThrowIfNull(id);
+        ArgumentNullException.ThrowIfNull(author);
+        ArgumentNullException.ThrowIfNull(visibility);
+        ArgumentNullException.ThrowIfNull(price);
+        ID = id;
+        作者 = author;
+        公開範囲 = visibility;
+        料金 = price;
+    }
 
     public static ストーリー 投稿する(
-        string id,
-        string author,
+        ストーリーID id,
+        利用者ID author,
         公開範囲 visibility,
         料金区分 price
-    ) =>
-        new()
-        {
-            ID = id,
-            作者 = author,
-            公開範囲 = visibility,
-            料金 = price,
-        };
+    ) => new(id, author, visibility, price);
 
-    public 公開範囲変更結果 公開範囲を変える(公開範囲 newVisibility, string actor)
+    public 公開範囲変更結果 公開範囲を変える(公開範囲 newVisibility, 利用者ID actor)
     {
+        ArgumentNullException.ThrowIfNull(newVisibility);
+        ArgumentNullException.ThrowIfNull(actor);
         if (actor != 作者)
             return new 変更拒否(変更拒否理由.作者ではない);
-
         if (newVisibility == 公開範囲)
             return new 変更拒否(変更拒否理由.既にその公開範囲);
-
-        公開範囲 = newVisibility;
-        return new 変更できた();
+        return new 変更できた(new ストーリー(ID, 作者, newVisibility, 料金));
     }
 }
 
 public enum 変更拒否理由 { 作者ではない, 既にその公開範囲 }
+
 public closed record 公開範囲変更結果;
-public sealed record 変更できた : 公開範囲変更結果;
+public sealed record 変更できた(ストーリー 変更後) : 公開範囲変更結果;
 public sealed record 変更拒否(変更拒否理由 理由) : 公開範囲変更結果;
-
-public enum 閲覧拒否理由 { フォローが必要, 購入が必要 }
-public closed record 閲覧判定;
-public sealed record 許可 : 閲覧判定;
-public sealed record 拒否(閲覧拒否理由 理由) : 閲覧判定;
-
-public sealed record フォロー確認が必要(ストーリー 対象, string 閲覧者) : 閲覧判定
-{
-    public 閲覧判定 結果(bool isFollowing) =>
-        isFollowing ? 閲覧.有料かどうか(対象, 閲覧者) : new 拒否(閲覧拒否理由.フォローが必要);
-}
-
-public sealed record 会員確認が必要(ストーリー 対象, string 閲覧者) : 閲覧判定
-{
-    public 閲覧判定 結果(bool isVip) => isVip ? new 許可() : new 購入確認が必要(対象, 閲覧者);
-}
-
-public sealed record 購入確認が必要(ストーリー 対象, string 閲覧者) : 閲覧判定
-{
-    public 閲覧判定 結果(bool hasPurchased) =>
-        hasPurchased ? new 許可() : new 拒否(閲覧拒否理由.購入が必要);
-}
-
-public static class 閲覧
-{
-    public static 閲覧判定 開始(ストーリー story, string viewer) =>
-        story.作者 == viewer
-            ? new 許可()
-            : story.公開範囲 switch
-            {
-                公開範囲.全体公開 => 有料かどうか(story, viewer),
-                公開範囲.フォロワー限定 => new フォロー確認が必要(story, viewer),
-                _ => throw new ArgumentOutOfRangeException(nameof(story)),
-            };
-
-    internal static 閲覧判定 有料かどうか(ストーリー story, string viewer) =>
-        story.料金 == 料金区分.無料 ? new 許可() : new 会員確認が必要(story, viewer);
-}

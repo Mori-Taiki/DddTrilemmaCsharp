@@ -65,16 +65,19 @@ app.MapGet(
         CancellationToken ct
     ) =>
     {
-        if (string.IsNullOrWhiteSpace(viewer))
+        if (
+            !利用者ID.作成できる(viewer, out var viewerId)
+            || !ストーリーID.作成できる(id, out var storyId)
+        )
             return Results.BadRequest(new { error = "viewer is required" });
 
         var story = await db
             .ストーリー一覧.AsNoTracking()
-            .SingleOrDefaultAsync(x => x.ID == id, ct);
+            .SingleOrDefaultAsync(x => x.ID == storyId.値, ct);
         if (story is null)
             return Results.NotFound();
 
-        var result = await service.判定する(story, viewer, ct);
+        var result = await service.判定する(story.ドメインに戻す(), viewerId, ct);
 
         log.LogInformation(
             "Decision {Trace}; fact queries={Count} (story load excluded)",
@@ -90,24 +93,35 @@ app.MapPut(
     "/stories/{id}/visibility",
     async Task<IResult> (string id, 公開範囲変更要求 request, AppDb db, CancellationToken ct) =>
     {
+        var visibility = 境界値.公開範囲を読む(request.公開範囲);
         if (
-            string.IsNullOrWhiteSpace(request.実行者)
-            || request.公開範囲 is null
-            || !Enum.IsDefined(request.公開範囲.Value)
+            !利用者ID.作成できる(request.実行者, out var actor)
+            || !ストーリーID.作成できる(id, out var storyId)
+            || visibility is null
         )
             return Results.BadRequest(new { error = "actor and valid visibility are required" });
 
-        var story = await db.ストーリー一覧.SingleOrDefaultAsync(x => x.ID == id, ct);
-        if (story is null)
+        var row = await db.ストーリー一覧.SingleOrDefaultAsync(x => x.ID == storyId.値, ct);
+        if (row is null)
             return Results.NotFound();
 
-        var result = story.公開範囲を変える(request.公開範囲.Value, request.実行者);
-        if (result is 変更できた)
+        var story = row.ドメインに戻す();
+        var result = story.公開範囲を変える(visibility, actor);
+        if (result is 変更できた changed)
+        {
+            row.適用する(changed.変更後);
             await db.SaveChangesAsync(ct);
+        }
 
         return result switch
         {
-            変更できた => Results.Ok(new { id = story.ID, visibility = story.公開範囲 }),
+            変更できた success => Results.Ok(
+                new
+                {
+                    id = success.変更後.ID.値,
+                    visibility = 境界値.文字列にする(success.変更後.公開範囲),
+                }
+            ),
             変更拒否 d => Results.Json(
                 new { reason = d.理由 },
                 statusCode: d.理由 == 変更拒否理由.作者ではない ? 403 : 409
@@ -120,7 +134,7 @@ app.Run();
 
 public sealed record 公開範囲変更要求(
     [property: JsonPropertyName("actor")] string? 実行者,
-    [property: JsonPropertyName("visibility")] 公開範囲? 公開範囲
+    [property: JsonPropertyName("visibility")] string? 公開範囲
 );
 
 public partial class Program { }

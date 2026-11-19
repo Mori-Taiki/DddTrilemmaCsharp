@@ -25,8 +25,8 @@ public sealed class Apiテスト
         var db = scope.ServiceProvider.GetRequiredService<AppDb>();
         var saved = await db.ストーリー一覧.AsNoTracking().SingleAsync(x => x.ID == "public-free");
         Assert.Equal("author", saved.作者);
-        Assert.Equal(料金区分.無料, saved.料金);
-        Assert.Equal(公開範囲.フォロワー限定, saved.公開範囲);
+        Assert.Equal("無料", saved.料金);
+        Assert.Equal("フォロワー限定", saved.公開範囲);
         using var viewing = await client.GetAsync("/stories/public-free/view?viewer=guest");
         Assert.Equal(HttpStatusCode.Forbidden, viewing.StatusCode);
         var body = await viewing.Content.ReadFromJsonAsync<System.Text.Json.JsonElement>();
@@ -48,7 +48,7 @@ public sealed class Apiテスト
         using var scope = app.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDb>();
         var saved = await db.ストーリー一覧.AsNoTracking().SingleAsync(x => x.ID == "public-free");
-        Assert.Equal(公開範囲.全体公開, saved.公開範囲);
+        Assert.Equal("全体公開", saved.公開範囲);
     }
 
     [Fact]
@@ -101,6 +101,8 @@ public sealed class Apiテスト
     }
 
     [Theory]
+    [InlineData("未知の公開範囲", "{\"actor\":\"author\",\"visibility\":\"作者限定\"}")]
+    [InlineData("空の実行者", "{\"actor\":\" \",\"visibility\":\"全体公開\"}")]
     [InlineData("公開範囲が未指定", "{\"actor\":\"author\"}")]
     [InlineData("未定義の公開範囲", "{\"actor\":\"author\",\"visibility\":99}")]
     [InlineData("実行者が未指定", "{\"visibility\":\"全体公開\"}")]
