@@ -19,7 +19,7 @@ public sealed record ストーリー
     public 公開範囲 公開範囲 { get; }
     public 料金区分 料金 { get; }
 
-    private ストーリー(ストーリーID id, 利用者ID author, 公開範囲 visibility, 料金区分 price)
+    public ストーリー(ストーリーID id, 利用者ID author, 公開範囲 visibility, 料金区分 price)
     {
         ArgumentNullException.ThrowIfNull(id);
         ArgumentNullException.ThrowIfNull(author);
@@ -30,13 +30,6 @@ public sealed record ストーリー
         公開範囲 = visibility;
         料金 = price;
     }
-
-    public static ストーリー 投稿する(
-        ストーリーID id,
-        利用者ID author,
-        公開範囲 visibility,
-        料金区分 price
-    ) => new(id, author, visibility, price);
 
     public 公開範囲変更結果 公開範囲を変える(公開範囲 newVisibility, 利用者ID actor)
     {

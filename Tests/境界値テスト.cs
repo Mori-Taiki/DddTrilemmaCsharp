@@ -58,13 +58,13 @@ public sealed class 境界値テスト
     [Fact]
     public void ドメインで計算しただけでは追跡対象は変わらず明示的な適用で変わる()
     {
-        var before = ストーリー.投稿する(
+        var before = new ストーリー(
             new ストーリーID("story"),
             new 利用者ID("author"),
             new 公開範囲.全体公開(),
             new 料金区分.無料()
         );
-        var row = ストーリー行.作成する(before);
+        var row = new ストーリー行(before);
 
         var result = Assert.IsType<変更できた>(
             before.公開範囲を変える(new 公開範囲.フォロワー限定(), new 利用者ID("author"))

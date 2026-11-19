@@ -12,7 +12,7 @@ public sealed class 閲覧ドメインテスト
     [InlineData("フォロワー限定", "有料")]
     public void 作者本人は公開範囲と料金によらず閲覧できる(string visibility, string price)
     {
-        var story = ストーリー.投稿する(
+        var story = new ストーリー(
             new ストーリーID("story"),
             new 利用者ID("author"),
             境界値.公開範囲を読む(visibility)!,
@@ -27,7 +27,7 @@ public sealed class 閲覧ドメインテスト
     [Fact]
     public void 全体公開の無料作品は追加の事実なしで閲覧できる()
     {
-        var story = ストーリー.投稿する(
+        var story = new ストーリー(
             new ストーリーID("story"),
             new 利用者ID("author"),
             new 公開範囲.全体公開(),
@@ -42,7 +42,7 @@ public sealed class 閲覧ドメインテスト
     [Fact]
     public void フォロワー限定作品は非フォロワーの閲覧を拒否する()
     {
-        var story = ストーリー.投稿する(
+        var story = new ストーリー(
             new ストーリーID("story"),
             new 利用者ID("author"),
             new 公開範囲.フォロワー限定(),
@@ -60,7 +60,7 @@ public sealed class 閲覧ドメインテスト
     [Fact]
     public void 有料作品はVIP会員なら購入確認なしで閲覧できる()
     {
-        var story = ストーリー.投稿する(
+        var story = new ストーリー(
             new ストーリーID("story"),
             new 利用者ID("author"),
             new 公開範囲.全体公開(),
@@ -80,7 +80,7 @@ public sealed class 閲覧ドメインテスト
     [InlineData(false)]
     public void 有料作品の一般会員は購入済みの場合だけ閲覧できる(bool hasPurchased)
     {
-        var story = ストーリー.投稿する(
+        var story = new ストーリー(
             new ストーリーID("story"),
             new 利用者ID("author"),
             new 公開範囲.全体公開(),

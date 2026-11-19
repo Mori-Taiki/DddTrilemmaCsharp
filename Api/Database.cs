@@ -87,32 +87,32 @@ public static class 初期データ
             return;
 
         db.ストーリー一覧.AddRange(
-            ストーリー行.作成する(
-                ストーリー.投稿する(
+            new ストーリー行(
+                new ストーリー(
                     new ストーリーID("public-free"),
                     new 利用者ID("author"),
                     new 公開範囲.全体公開(),
                     new 料金区分.無料()
                 )
             ),
-            ストーリー行.作成する(
-                ストーリー.投稿する(
+            new ストーリー行(
+                new ストーリー(
                     new ストーリーID("public-paid"),
                     new 利用者ID("author"),
                     new 公開範囲.全体公開(),
                     new 料金区分.有料()
                 )
             ),
-            ストーリー行.作成する(
-                ストーリー.投稿する(
+            new ストーリー行(
+                new ストーリー(
                     new ストーリーID("followers-free"),
                     new 利用者ID("author"),
                     new 公開範囲.フォロワー限定(),
                     new 料金区分.無料()
                 )
             ),
-            ストーリー行.作成する(
-                ストーリー.投稿する(
+            new ストーリー行(
+                new ストーリー(
                     new ストーリーID("followers-paid"),
                     new 利用者ID("author"),
                     new 公開範囲.フォロワー限定(),

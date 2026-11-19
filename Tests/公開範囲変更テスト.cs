@@ -7,7 +7,7 @@ public sealed class 公開範囲変更テスト
     [Fact]
     public void 作者の変更は新しい状態を返し元のストーリーを変更しない()
     {
-        var story = ストーリー.投稿する(
+        var story = new ストーリー(
             new ストーリーID("story"),
             new 利用者ID("author"),
             new 公開範囲.全体公開(),
@@ -31,7 +31,7 @@ public sealed class 公開範囲変更テスト
     [Fact]
     public void 作者以外の変更は拒否され公開範囲は変わらない()
     {
-        var story = ストーリー.投稿する(
+        var story = new ストーリー(
             new ストーリーID("story"),
             new 利用者ID("author"),
             new 公開範囲.全体公開(),
@@ -47,7 +47,7 @@ public sealed class 公開範囲変更テスト
     [Fact]
     public void 同じ公開範囲への変更は拒否され状態は変わらない()
     {
-        var story = ストーリー.投稿する(
+        var story = new ストーリー(
             new ストーリーID("story"),
             new 利用者ID("author"),
             new 公開範囲.フォロワー限定(),

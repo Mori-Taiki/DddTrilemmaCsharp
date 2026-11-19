@@ -85,7 +85,7 @@ public sealed class 閲覧統合テスト
     )
     {
         await using var database = await テスト用データベース.作成する();
-        var story = ストーリー.投稿する(
+        var story = new ストーリー(
             new ストーリーID("story"),
             new 利用者ID("author"),
             境界値.公開範囲を読む(visibility)!,
@@ -109,13 +109,13 @@ public sealed class 閲覧統合テスト
     public async Task 他人や別作品の事実は閲覧許可に流用されない()
     {
         await using var database = await テスト用データベース.作成する();
-        var story = ストーリー.投稿する(
+        var story = new ストーリー(
             new ストーリーID("story"),
             new 利用者ID("author"),
             new 公開範囲.全体公開(),
             new 料金区分.有料()
         );
-        var other = ストーリー.投稿する(
+        var other = new ストーリー(
             new ストーリーID("other"),
             new 利用者ID("author"),
             new 公開範囲.全体公開(),
@@ -139,7 +139,7 @@ public sealed class 閲覧統合テスト
     public async Task 他の作者へのフォローや他人のフォローは閲覧許可に流用されない()
     {
         await using var database = await テスト用データベース.作成する();
-        var story = ストーリー.投稿する(
+        var story = new ストーリー(
             new ストーリーID("story"),
             new 利用者ID("author"),
             new 公開範囲.フォロワー限定(),
@@ -170,7 +170,7 @@ public sealed class 閲覧統合テスト
     )
     {
         await using var database = await テスト用データベース.作成する();
-        var story = ストーリー.投稿する(
+        var story = new ストーリー(
             new ストーリーID("story"),
             new 利用者ID("author"),
             new 公開範囲.フォロワー限定(),
@@ -196,7 +196,7 @@ public sealed class 閲覧統合テスト
     public async Task 全体公開の無料作品は実SQLを発行せずに許可される()
     {
         await using var database = await テスト用データベース.作成する();
-        var story = ストーリー.投稿する(
+        var story = new ストーリー(
             new ストーリーID("story"),
             new 利用者ID("author"),
             new 公開範囲.全体公開(),
@@ -216,7 +216,7 @@ public sealed class 閲覧統合テスト
     [Fact]
     public async Task 事実取得の障害は業務上の拒否に変換されない()
     {
-        var story = ストーリー.投稿する(
+        var story = new ストーリー(
             new ストーリーID("story"),
             new 利用者ID("author"),
             new 公開範囲.全体公開(),

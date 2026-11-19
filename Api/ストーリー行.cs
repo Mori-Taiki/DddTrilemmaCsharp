@@ -11,7 +11,7 @@ public sealed class ストーリー行
     public string 料金 { get; set; } = "";
 
     public ストーリー ドメインに戻す() =>
-        ストーリー.投稿する(
+        new ストーリー(
             new ストーリーID(ID),
             new 利用者ID(作者),
             境界値.公開範囲を読む(公開範囲)
@@ -20,12 +20,10 @@ public sealed class ストーリー行
                 ?? throw new InvalidOperationException("DBの料金区分が不正です。")
         );
 
-    public static ストーリー行 作成する(ストーリー story)
-    {
-        var row = new ストーリー行();
-        row.適用する(story);
-        return row;
-    }
+    // EFによる復元用。
+    public ストーリー行() { }
+
+    public ストーリー行(ストーリー story) => 適用する(story);
 
     public void 適用する(ストーリー story)
     {
