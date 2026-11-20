@@ -5,7 +5,7 @@
       "label": "APIを起動（不変モデル）",
       "type": "process",
       "command": "dotnet",
-      "args": ["run", "--project", "Api", "--", "--urls", "http://0.0.0.0:5080"],
+      "args": ["run", "--project", "src/Variants/Immutable/Api", "--", "--urls", "http://0.0.0.0:5080"],
       "options": { "cwd": "${workspaceFolder}" },
       "problemMatcher": [],
       "presentation": { "reveal": "always", "panel": "dedicated" }
@@ -14,7 +14,7 @@
       "label": "APIを起動（可変モデル）",
       "type": "process",
       "command": "dotnet",
-      "args": ["run", "--project", "MutableApi", "--", "--urls", "http://0.0.0.0:5081"],
+      "args": ["run", "--project", "src/Variants/Mutable/Api", "--", "--urls", "http://0.0.0.0:5081"],
       "options": { "cwd": "${workspaceFolder}" },
       "problemMatcher": [],
       "presentation": { "reveal": "always", "panel": "dedicated" }

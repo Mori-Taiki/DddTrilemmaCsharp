@@ -6,17 +6,20 @@ import sys
 import tempfile
 
 root = Path(__file__).resolve().parents[1]
+src = root / "src"
 dotnet = str(Path(sys.argv[1]).resolve()) if len(sys.argv) > 1 else "dotnet"
 
-for model, setter_diagnostic in [("不変版", "CS0200"), ("可変版", "CS0272")]:
+for variant, model, setter_diagnostic in [
+    ("Immutable", "不変版", "CS0200"),
+    ("Mutable", "可変版", "CS0272"),
+]:
     with tempfile.TemporaryDirectory(prefix="ddd-type-check-") as directory:
         target = Path(directory)
-        for source in (root / "Domain").glob("*.cs"):
-            shutil.copy(source, target / source.name)
-        if model == "可変版":
-            shutil.copy(root / "MutableDomain" / "ストーリー.cs", target / "ストーリー.cs")
+        for source in (src / "Domain").glob("*.cs"):
+            shutil.copy(source, target)
+        shutil.copy(src / "Variants" / variant / "Domain" / "ストーリー.cs", target)
         for name in ["境界値.cs", "閲覧判定サービス.cs"]:
-            shutil.copy(root / "Api" / name, target / name)
+            shutil.copy(src / "Api" / name, target)
         shutil.copy(root / "global.json", target / "global.json")
         project = target / "Probe.csproj"
         project.write_text('''<Project Sdk="Microsoft.NET.Sdk">

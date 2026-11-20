@@ -7,7 +7,7 @@
     <IsPackable>false</IsPackable>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="../MutableApi/MutableApi.csproj" />
+    <ProjectReference Include="../../../src/Variants/Mutable/Api/MutableApi.csproj" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
     <PackageReference Include="xunit" Version="2.9.3" />
     <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5">
@@ -15,9 +15,7 @@
     </PackageReference>
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="11.0.0" />
     <Using Include="Xunit" />
-    <Compile Include="../Tests/Apiテスト.cs" Link="共通/Apiテスト.cs" />
-    <Compile Include="../Tests/テスト用アプリ.cs" Link="共通/テスト用アプリ.cs" />
-    <Compile Include="../Tests/閲覧ドメインテスト.cs" Link="共通/閲覧ドメインテスト.cs" />
-    <Compile Include="../Tests/境界値テスト.cs" Link="共通/境界値テスト.cs" />
+    <Compile Include="../../Api/*.cs" Link="Api/%(Filename)%(Extension)" />
+    <Compile Include="../../Domain/*.cs" Link="Domain/%(Filename)%(Extension)" />
   </ItemGroup>
 </Project>

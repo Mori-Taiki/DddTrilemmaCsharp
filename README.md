@@ -94,11 +94,11 @@ if (result is 変更できた)
 
 | 比較する場所 | 不変版 | 可変版 |
 |---|---|---|
-| 状態と変更 | [Domain/ストーリー.cs](Domain/ストーリー.cs)：新しい状態を返す | [MutableDomain/ストーリー.cs](MutableDomain/ストーリー.cs)：自身を変更する |
-| EFの追跡対象 | [ストーリー行](Api/ストーリー行.cs) | [ストーリーを直接マッピング](MutableApi/Database.cs) |
-| 保存の呼び出し | [適用してから保存](Api/ストーリーAPI.cs) | [変更後にそのまま保存](MutableApi/ストーリーAPI.cs) |
+| 状態と変更 | [新しい状態を返す](src/Variants/Immutable/Domain/ストーリー.cs) | [自身を変更する](src/Variants/Mutable/Domain/ストーリー.cs) |
+| EFの追跡対象 | [ストーリー行](src/Variants/Immutable/Api/ストーリー行.cs) | [ストーリーを直接マッピング](src/Variants/Mutable/Api/Database.cs) |
+| 保存の呼び出し | [適用してから保存](src/Variants/Immutable/Api/ストーリーAPI.cs) | [変更後にそのまま保存](src/Variants/Mutable/Api/ストーリーAPI.cs) |
 
-閲覧ルール・値オブジェクト・HTTPの仕様テストは、csprojのリンクで同じソースを両方のプロジェクトに取り込みます。同じ名前空間・型名を使いますが、各APIは対応する片方のドメインだけを参照する独立したアプリです。
+閲覧ルールと値オブジェクトは [src/Domain](src/Domain)、閲覧判定サービスとAPIの起動処理は [src/Api](src/Api) にあります。[src/Variants](src/Variants) には、状態変更と永続化の方式ごとに `Immutable` と `Mutable` のプロジェクトを置いています。各版はcsprojのリンクで本体と仕様テストのソースを取り込み、対応するドメインを使う独立したアプリとして起動できます。
 
 Queryはどちらも `AsNoTracking` で読み、「フォローしているか」などの事実取得ポートを通して判定します。可変版でも、取得したオブジェクトを判定中に変更しません。Commandは追跡して変更を保存する、Queryは読んで結果を返す、という役割の違いです。このサンプルは単件判定なので、一覧へ広げる際は事実の一括取得を、判定中のDB変更が許されない用途では読み取りの一貫性を検討します。
 
@@ -116,15 +116,15 @@ Queryはどちらも `AsNoTracking` で読み、「フォローしているか�
 
 ```bash
 # 不変モデル + 永続化用の行
-dotnet run --project Api -- --urls http://0.0.0.0:5080
+dotnet run --project src/Variants/Immutable/Api -- --urls http://0.0.0.0:5080
 
 # 可変モデル + EF Coreの直接追跡（別ターミナルで起動）
-dotnet run --project MutableApi -- --urls http://0.0.0.0:5081
+dotnet run --project src/Variants/Mutable/Api -- --urls http://0.0.0.0:5081
 ```
 
 Codespacesでは **Ports → 5080 / 5081**、ローカルでは `http://localhost:5080` / `http://localhost:5081` を開きます。起動プロジェクトで切り替えられ、同時起動して比較することもできます。VS Codeにも両方の起動タスクがあります。
 
-初回起動時に、同じサンプルデータを持つ独立したSQLite DB（`Api/app.db` / `MutableApi/app.db`）を作ります。一方の変更は他方へ反映されません。次の例は不変版です。ポートを5081に変えると、同じリクエストで可変版を試せます。
+初回起動時に、各APIのディレクトリに同じサンプルデータを持つ独立したSQLite DB（`src/Variants/Immutable/Api/app.db` / `src/Variants/Mutable/Api/app.db`）を作ります。以前の配置で作ったDBを使う場合は、起動時に `--DatabasePath` で対応するDBのパスを指定できます。次の例は不変版です。ポートを5081に変えると、同じリクエストで可変版を試せます。
 
 ```bash
 curl 'http://localhost:5080/stories/followers-paid/view?viewer=vip'
@@ -136,4 +136,4 @@ dotnet test DddDemo.sln
 
 `viewer` を `guest`・`follower`・`vip`・`buyer`・`author` に変えると、結果・判定経路・追加クエリ数を比較できます。追加クエリ数には、最初のストーリー取得は含みません。利用者指定はデモ用で、認証ではありません。
 
-テストは [Tests](Tests) と [MutableTests](MutableTests) にあります。可変版では、変更の保存・拒否時の不変性・追跡しない場合の挙動も実SQLiteで検証します。両版のケース追加時のビルドエラーは `python3 scripts/check_exhaustiveness.py` で確認できます。
+閲覧ルールの仕様テストは [tests/Domain](tests/Domain)、HTTPと境界値の仕様テストは [tests/Api](tests/Api)、各版のテストプロジェクトは [tests/Variants](tests/Variants) にあります。可変版では、変更の保存・拒否時の不変性・追跡しない場合の挙動も実SQLiteで検証します。両版のケース追加時のビルドエラーは `python3 scripts/check_exhaustiveness.py` で確認できます。
