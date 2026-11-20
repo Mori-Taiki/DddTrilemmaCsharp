@@ -2,20 +2,13 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "APIを起動（不変モデル）",
+      "label": "APIを起動",
       "type": "process",
       "command": "dotnet",
-      "args": ["run", "--project", "src/Variants/Immutable/Api", "--", "--urls", "http://0.0.0.0:5080"],
-      "options": { "cwd": "${workspaceFolder}" },
-      "problemMatcher": [],
-      "presentation": { "reveal": "always", "panel": "dedicated" }
-    },
-    {
-      "label": "APIを起動（可変モデル）",
-      "type": "process",
-      "command": "dotnet",
-      "args": ["run", "--project", "src/Variants/Mutable/Api", "--", "--urls", "http://0.0.0.0:5081"],
-      "options": { "cwd": "${workspaceFolder}" },
+      "args": ["run", "--project", "src/Api", "-p:StoryModel=${input:storyModel}"],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
       "problemMatcher": [],
       "presentation": { "reveal": "always", "panel": "dedicated" }
     },
@@ -23,8 +16,10 @@
       "label": "テストを実行",
       "type": "process",
       "command": "dotnet",
-      "args": ["test", "DddDemo.sln"],
-      "options": { "cwd": "${workspaceFolder}" },
+      "args": ["test", "DddDemo.sln", "-p:StoryModel=${input:storyModel}"],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
       "group": "test",
       "problemMatcher": "$msCompile"
     },
@@ -32,10 +27,21 @@
       "label": "ビルド",
       "type": "process",
       "command": "dotnet",
-      "args": ["build", "DddDemo.sln"],
-      "options": { "cwd": "${workspaceFolder}" },
+      "args": ["build", "DddDemo.sln", "-p:StoryModel=${input:storyModel}"],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
       "group": { "kind": "build", "isDefault": true },
       "problemMatcher": "$msCompile"
+    }
+  ],
+  "inputs": [
+    {
+      "id": "storyModel",
+      "type": "pickString",
+      "description": "ストーリーモデル",
+      "options": ["Immutable", "Mutable"],
+      "default": "Immutable"
     }
   ]
 }

@@ -7,22 +7,21 @@
   "remoteUser": "vscode",
   "postCreateCommand": "bash .devcontainer/setup.sh",
   "waitFor": "postCreateCommand",
-  "forwardPorts": [5080, 5081],
+  "forwardPorts": [
+    5080
+  ],
   "portsAttributes": {
     "5080": {
-      "label": "DDD API（不変モデル）",
-      "protocol": "http",
-      "onAutoForward": "notify"
-    },
-    "5081": {
-      "label": "DDD API（可変モデル）",
+      "label": "DDD API",
       "protocol": "http",
       "onAutoForward": "notify"
     }
   },
   "customizations": {
     "vscode": {
-      "extensions": ["ms-dotnettools.csharp"],
+      "extensions": [
+        "ms-dotnettools.csharp"
+      ],
       "settings": {
         "dotnet.defaultSolution": "DddDemo.sln"
       }

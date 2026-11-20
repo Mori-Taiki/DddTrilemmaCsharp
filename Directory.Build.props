@@ -1,0 +1,8 @@
+<Project>
+  <PropertyGroup>
+    <StoryModel Condition="'$(StoryModel)' == ''">Immutable</StoryModel>
+    <BaseOutputPath>bin/$(StoryModel)/</BaseOutputPath>
+    <BaseIntermediateOutputPath>obj/$(StoryModel)/</BaseIntermediateOutputPath>
+    <DefaultItemExcludes>$(DefaultItemExcludes);bin/**;obj/**</DefaultItemExcludes>
+  </PropertyGroup>
+</Project>

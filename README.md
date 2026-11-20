@@ -98,7 +98,7 @@ if (result is 変更できた)
 | EFの追跡対象 | [ストーリー行](src/Variants/Immutable/Api/ストーリー行.cs) | [ストーリーを直接マッピング](src/Variants/Mutable/Api/Database.cs) |
 | 保存の呼び出し | [適用してから保存](src/Variants/Immutable/Api/ストーリーAPI.cs) | [変更後にそのまま保存](src/Variants/Mutable/Api/ストーリーAPI.cs) |
 
-閲覧ルールと値オブジェクトは [src/Domain](src/Domain)、閲覧判定サービスとAPIの起動処理は [src/Api](src/Api) にあります。[src/Variants](src/Variants) には、状態変更と永続化の方式ごとに `Immutable` と `Mutable` のプロジェクトを置いています。各版はcsprojのリンクで本体と仕様テストのソースを取り込み、対応するドメインを使う独立したアプリとして起動できます。
+閲覧ルールと値オブジェクトは [src/Domain](src/Domain)、閲覧判定サービスとAPIの起動処理は [src/Api](src/Api) にあります。[src/Variants](src/Variants) に各方式の実装があります。ビルド時に `StoryModel` で選んだモデルをドメイン・API・テストに組み込みます。既定は `Immutable` です。
 
 Queryはどちらも `AsNoTracking` で読み、「フォローしているか」などの事実取得ポートを通して判定します。可変版でも、取得したオブジェクトを判定中に変更しません。Commandは追跡して変更を保存する、Queryは読んで結果を返す、という役割の違いです。このサンプルは単件判定なので、一覧へ広げる際は事実の一括取得を、判定中のDB変更が許されない用途では読み取りの一貫性を検討します。
 
@@ -115,16 +115,16 @@ Queryはどちらも `AsNoTracking` で読み、「フォローしているか�
 [GitHub Codespacesで開く](https://codespaces.new/Mori-Taiki/DddTrilemmaCsharp)と、SDKの準備・依存関係の復元・ビルドが自動で行われます。ローカルでは.NET SDK **11.0.100**を導入してcloneしてください。リポジトリ直下で起動します。
 
 ```bash
-# 不変モデル + 永続化用の行
-dotnet run --project src/Variants/Immutable/Api -- --urls http://0.0.0.0:5080
+# 不変モデルで起動
+dotnet run --project src/Api
 
-# 可変モデル + EF Coreの直接追跡（別ターミナルで起動）
-dotnet run --project src/Variants/Mutable/Api -- --urls http://0.0.0.0:5081
+# Ctrl+C で停止してから可変モデルで起動
+dotnet run --project src/Api -p:StoryModel=Mutable
 ```
 
-Codespacesでは **Ports → 5080 / 5081**、ローカルでは `http://localhost:5080` / `http://localhost:5081` を開きます。起動プロジェクトで切り替えられ、同時起動して比較することもできます。VS Codeにも両方の起動タスクがあります。
+どちらもローカルでは `http://localhost:5080`、Codespacesでは **Ports → 5080** を開きます。VS Codeでは「APIを起動」タスクでモデルを選べます。
 
-初回起動時に、各APIのディレクトリに同じサンプルデータを持つ独立したSQLite DB（`src/Variants/Immutable/Api/app.db` / `src/Variants/Mutable/Api/app.db`）を作ります。以前の配置で作ったDBを使う場合は、起動時に `--DatabasePath` で対応するDBのパスを指定できます。次の例は不変版です。ポートを5081に変えると、同じリクエストで可変版を試せます。
+両方式で同じSQLite DB（`src/Api/app.db`）を使うため、公開範囲の変更は切り替え後も引き継がれます。以前のDBを使うには、起動コマンドの末尾に `-- --DatabasePath /path/to/app.db` を指定します。
 
 ```bash
 curl 'http://localhost:5080/stories/followers-paid/view?viewer=vip'
@@ -132,8 +132,9 @@ curl -X PUT http://localhost:5080/stories/public-free/visibility \
   -H 'Content-Type: application/json' \
   -d '{"actor":"author","visibility":"フォロワー限定"}'
 dotnet test DddDemo.sln
+dotnet test DddDemo.sln -p:StoryModel=Mutable
 ```
 
 `viewer` を `guest`・`follower`・`vip`・`buyer`・`author` に変えると、結果・判定経路・追加クエリ数を比較できます。追加クエリ数には、最初のストーリー取得は含みません。利用者指定はデモ用で、認証ではありません。
 
-閲覧ルールの仕様テストは [tests/Domain](tests/Domain)、HTTPと境界値の仕様テストは [tests/Api](tests/Api)、各版のテストプロジェクトは [tests/Variants](tests/Variants) にあります。可変版では、変更の保存・拒否時の不変性・追跡しない場合の挙動も実SQLiteで検証します。両版のケース追加時のビルドエラーは `python3 scripts/check_exhaustiveness.py` で確認できます。
+閲覧ルールの仕様テストは [tests/Domain](tests/Domain)、HTTPと境界値の仕様テストは [tests/Api](tests/Api)、各方式に固有のテストは [tests/Variants](tests/Variants) にあります。可変版では、変更の保存・拒否時の不変性・追跡しない場合の挙動も実SQLiteで検証します。両版のケース追加時のビルドエラーは `python3 scripts/check_exhaustiveness.py` で確認できます。

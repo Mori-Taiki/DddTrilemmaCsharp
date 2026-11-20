@@ -8,6 +8,6 @@
   <ItemGroup>
     <ProjectReference Include="../Domain/Domain.csproj" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="11.0.0" />
-    <Compile Include="../../../Api/*.cs" Link="%(Filename)%(Extension)" />
+    <Compile Include="../Variants/$(StoryModel)/Api/*.cs" Link="%(Filename)%(Extension)" />
   </ItemGroup>
 </Project>

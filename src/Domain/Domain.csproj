@@ -6,6 +6,6 @@
     <WarningsAsErrors>CS8509</WarningsAsErrors>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="../../../Domain/*.cs" Link="%(Filename)%(Extension)" />
+    <Compile Include="../Variants/$(StoryModel)/Domain/*.cs" Link="%(Filename)%(Extension)" />
   </ItemGroup>
 </Project>
