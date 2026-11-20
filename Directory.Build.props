@@ -4,5 +4,7 @@
     <BaseOutputPath>bin/$(StoryModel)/</BaseOutputPath>
     <BaseIntermediateOutputPath>obj/$(StoryModel)/</BaseIntermediateOutputPath>
     <DefaultItemExcludes>$(DefaultItemExcludes);bin/**;obj/**</DefaultItemExcludes>
+    <DefaultItemExcludes Condition="'$(StoryModel)' != 'Immutable'">$(DefaultItemExcludes);Immutable/**</DefaultItemExcludes>
+    <DefaultItemExcludes Condition="'$(StoryModel)' != 'Mutable'">$(DefaultItemExcludes);Mutable/**</DefaultItemExcludes>
   </PropertyGroup>
 </Project>

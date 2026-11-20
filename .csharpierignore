@@ -1,5 +1,5 @@
 # ドメインの宣言は、手動で整えたコンパクトなグループ化を維持する。
 src/Domain/閲覧.cs
 src/Domain/ストーリーの値.cs
-src/Variants/Immutable/Domain/ストーリー.cs
-src/Variants/Mutable/Domain/ストーリー.cs
+src/Domain/Immutable/ストーリー.cs
+src/Domain/Mutable/ストーリー.cs

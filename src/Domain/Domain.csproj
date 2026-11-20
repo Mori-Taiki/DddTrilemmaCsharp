@@ -5,7 +5,4 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <WarningsAsErrors>CS8509</WarningsAsErrors>
   </PropertyGroup>
-  <ItemGroup>
-    <Compile Include="../Variants/$(StoryModel)/Domain/*.cs" Link="%(Filename)%(Extension)" />
-  </ItemGroup>
 </Project>

@@ -94,11 +94,11 @@ if (result is 変更できた)
 
 | 比較する場所 | 不変版 | 可変版 |
 |---|---|---|
-| 状態と変更 | [新しい状態を返す](src/Variants/Immutable/Domain/ストーリー.cs) | [自身を変更する](src/Variants/Mutable/Domain/ストーリー.cs) |
-| EFの追跡対象 | [ストーリー行](src/Variants/Immutable/Api/ストーリー行.cs) | [ストーリーを直接マッピング](src/Variants/Mutable/Api/Database.cs) |
-| 保存の呼び出し | [適用してから保存](src/Variants/Immutable/Api/ストーリーAPI.cs) | [変更後にそのまま保存](src/Variants/Mutable/Api/ストーリーAPI.cs) |
+| 状態と変更 | [新しい状態を返す](src/Domain/Immutable/ストーリー.cs) | [自身を変更する](src/Domain/Mutable/ストーリー.cs) |
+| EFの追跡対象 | [ストーリー行](src/Api/Immutable/ストーリー行.cs) | [ストーリーを直接マッピング](src/Api/Mutable/Database.cs) |
+| 保存の呼び出し | [適用してから保存](src/Api/Immutable/ストーリーAPI.cs) | [変更後にそのまま保存](src/Api/Mutable/ストーリーAPI.cs) |
 
-閲覧ルールと値オブジェクトは [src/Domain](src/Domain)、閲覧判定サービスとAPIの起動処理は [src/Api](src/Api) にあります。[src/Variants](src/Variants) に各方式の実装があります。ビルド時に `StoryModel` で選んだモデルをドメイン・API・テストに組み込みます。既定は `Immutable` です。
+閲覧ルールと値オブジェクトは [src/Domain](src/Domain)、閲覧判定サービスとAPIの起動処理は [src/Api](src/Api) にあります。どちらも直下の `Immutable/` と `Mutable/` に各方式の実装を置いています。ビルド時に `StoryModel` で選んだモデルをドメイン・API・テストに組み込みます。既定は `Immutable` です。
 
 Queryはどちらも `AsNoTracking` で読み、「フォローしているか」などの事実取得ポートを通して判定します。可変版でも、取得したオブジェクトを判定中に変更しません。Commandは追跡して変更を保存する、Queryは読んで結果を返す、という役割の違いです。このサンプルは単件判定なので、一覧へ広げる際は事実の一括取得を、判定中のDB変更が許されない用途では読み取りの一貫性を検討します。
 
@@ -137,4 +137,4 @@ dotnet test DddDemo.sln -p:StoryModel=Mutable
 
 `viewer` を `guest`・`follower`・`vip`・`buyer`・`author` に変えると、結果・判定経路・追加クエリ数を比較できます。追加クエリ数には、最初のストーリー取得は含みません。利用者指定はデモ用で、認証ではありません。
 
-閲覧ルールの仕様テストは [tests/Domain](tests/Domain)、HTTPと境界値の仕様テストは [tests/Api](tests/Api)、各方式に固有のテストは [tests/Variants](tests/Variants) にあります。可変版では、変更の保存・拒否時の不変性・追跡しない場合の挙動も実SQLiteで検証します。両版のケース追加時のビルドエラーは `python3 scripts/check_exhaustiveness.py` で確認できます。
+閲覧ルールの仕様テストは [tests/Domain](tests/Domain)、HTTPと境界値の仕様テストは [tests/Api](tests/Api)、各方式に固有のテストは [tests/Immutable](tests/Immutable) と [tests/Mutable](tests/Mutable) にあります。可変版では、変更の保存・拒否時の不変性・追跡しない場合の挙動も実SQLiteで検証します。両版のケース追加時のビルドエラーは `python3 scripts/check_exhaustiveness.py` で確認できます。

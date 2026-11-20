@@ -15,7 +15,5 @@
     </PackageReference>
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="11.0.0" />
     <Using Include="Xunit" />
-    <Compile Remove="Variants/**/*.cs" />
-    <Compile Include="Variants/$(StoryModel)/*.cs" />
   </ItemGroup>
 </Project>

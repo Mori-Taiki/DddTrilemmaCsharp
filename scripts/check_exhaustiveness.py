@@ -17,7 +17,7 @@ for variant, model, setter_diagnostic in [
         target = Path(directory)
         for source in (src / "Domain").glob("*.cs"):
             shutil.copy(source, target)
-        shutil.copy(src / "Variants" / variant / "Domain" / "ストーリー.cs", target)
+        shutil.copy(src / "Domain" / variant / "ストーリー.cs", target)
         for name in ["境界値.cs", "閲覧判定サービス.cs"]:
             shutil.copy(src / "Api" / name, target)
         shutil.copy(root / "global.json", target / "global.json")
