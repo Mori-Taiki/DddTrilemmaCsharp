@@ -96,13 +96,45 @@ public sealed class 閲覧統合テスト
             await database.保存する(new フォロー { 閲覧者 = "reader", 作者 = "author" });
         await database.保存する(new 会員 { 閲覧者 = "reader", VIPである = isVip });
         if (hasPurchased)
-            await database.保存する(new 購入 { 閲覧者 = "reader", ストーリーID = "story" });
+            await database.購入を保存する("reader", "story");
         var service = new 閲覧判定サービス(new EfCore閲覧事実取得(database));
 
         var result = await service.判定する(story, new 利用者ID("reader"), default);
 
         Assert.True(result.許可 == (expectedReason is null), caseName);
         Assert.Equal(expectedReason, result.理由);
+    }
+
+    [Theory]
+    [InlineData("story", true)]
+    [InlineData("other", false)]
+    public async Task 対象作品だけの購入と別作品だけの購入を区別する(
+        string purchasedStoryId,
+        bool expectedAllowed
+    )
+    {
+        await using var database = await テスト用データベース.作成する();
+        var story = new ストーリー(
+            new ストーリーID("story"),
+            new 利用者ID("author"),
+            new 公開範囲.全体公開(),
+            new 料金区分.有料()
+        );
+        var other = new ストーリー(
+            new ストーリーID("other"),
+            new 利用者ID("author"),
+            new 公開範囲.全体公開(),
+            new 料金区分.有料()
+        );
+        await database.保存する(story, other);
+        // 両作品を購入したデータでは、作品IDの比較を反転しても検出できない。
+        await database.購入を保存する("reader", purchasedStoryId);
+        var service = new 閲覧判定サービス(new EfCore閲覧事実取得(database));
+
+        var result = await service.判定する(story, new 利用者ID("reader"), default);
+
+        Assert.Equal(expectedAllowed, result.許可);
+        Assert.Equal(expectedAllowed ? (閲覧拒否理由?)null : 閲覧拒否理由.購入が必要, result.理由);
     }
 
     [Fact]
@@ -122,11 +154,9 @@ public sealed class 閲覧統合テスト
             new 料金区分.有料()
         );
         await database.保存する(story, other);
-        await database.保存する(
-            new 会員 { 閲覧者 = "someone-else", VIPである = true },
-            new 購入 { 閲覧者 = "someone-else", ストーリーID = "story" },
-            new 購入 { 閲覧者 = "reader", ストーリーID = "other" }
-        );
+        await database.保存する(new 会員 { 閲覧者 = "someone-else", VIPである = true });
+        await database.購入を保存する("someone-else", "story");
+        await database.購入を保存する("reader", "other");
         var service = new 閲覧判定サービス(new EfCore閲覧事実取得(database));
 
         var result = await service.判定する(story, new 利用者ID("reader"), default);
@@ -180,9 +210,9 @@ public sealed class 閲覧統合テスト
             story,
             new フォロー { 閲覧者 = "vip", 作者 = "author" },
             new フォロー { 閲覧者 = "buyer", 作者 = "author" },
-            new 会員 { 閲覧者 = "vip", VIPである = true },
-            new 購入 { 閲覧者 = "buyer", ストーリーID = "story" }
+            new 会員 { 閲覧者 = "vip", VIPである = true }
         );
+        await database.購入を保存する("buyer", "story");
         var service = new 閲覧判定サービス(new EfCore閲覧事実取得(database));
         database.計測を開始する();
 
@@ -229,7 +259,30 @@ public sealed class 閲覧統合テスト
         );
     }
 
-    // 障害を安定して再現するためにのみスタブを使う。呼び出し順序は検証しない。
+    [Theory]
+    [InlineData("全体公開", "有料")]
+    [InlineData("フォロワー限定", "無料")]
+    public async Task キャンセル済みなら事実取得を開始しない(string visibility, string price)
+    {
+        var story = new ストーリー(
+            new ストーリーID("story"),
+            new 利用者ID("author"),
+            境界値.公開範囲を読む(visibility)!,
+            境界値.料金を読む(price)!
+        );
+        // 呼び出されるとIOExceptionになる取得先でも、先にキャンセルされる。
+        var service = new 閲覧判定サービス(new 障害を起こす事実取得());
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+
+        var exception = await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            service.判定する(story, new 利用者ID("reader"), cancellation.Token)
+        );
+
+        Assert.Equal(cancellation.Token, exception.CancellationToken);
+    }
+
+    // 障害・キャンセルの経路を安定して再現する。呼び出し順序は検証しない。
     private sealed class 障害を起こす事実取得 : 閲覧事実取得
     {
         public Task<フォロー確認結果> フォローしているか(

@@ -1,10 +1,68 @@
 using System.Net;
 using System.Net.Http.Json;
+using Demo.Api;
+using Demo.Domain;
+using Microsoft.AspNetCore.TestHost;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Demo.Tests;
 
 public sealed class Apiテスト
 {
+    [Fact]
+    public async Task ルートは利用可能なAPIを案内する()
+    {
+        await using var app = new テスト用アプリ();
+        using var client = app.CreateClient();
+
+        var body = await client.GetFromJsonAsync<System.Text.Json.JsonElement>("/");
+
+        Assert.False(string.IsNullOrWhiteSpace(body.GetProperty("app").GetString()));
+        Assert.Equal(
+            new[]
+            {
+                "GET /stories",
+                "GET /stories/{id}/view?viewer=guest",
+                "PUT /stories/{id}/visibility",
+            },
+            body.GetProperty("endpoints").EnumerateArray().Select(x => x.GetString())
+        );
+    }
+
+    [Fact]
+    public async Task 一覧は作品IDの昇順で全作品を返す()
+    {
+        await using var app = new テスト用アプリ();
+        using var client = app.CreateClient();
+
+        var stories = await client.GetFromJsonAsync<System.Text.Json.JsonElement[]>("/stories");
+
+        Assert.NotNull(stories);
+        Assert.Equal(
+            new[] { "followers-free", "followers-paid", "public-free", "public-paid" },
+            stories.Select(story => story.GetProperty("id").GetString())
+        );
+    }
+
+    [Fact]
+    public async Task 事実取得の障害は業務上の拒否ではなくサーバーエラーとして返す()
+    {
+        await using var app = new テスト用アプリ();
+        await using var failingApp = app.WithWebHostBuilder(builder =>
+            builder.ConfigureTestServices(services =>
+                services.AddScoped<閲覧事実取得, 障害を起こす事実取得>()
+            )
+        );
+        using var client = failingApp.CreateClient();
+
+        using var response = await client.GetAsync("/stories/public-paid/view?viewer=guest");
+
+        Assert.Equal(HttpStatusCode.InternalServerError, response.StatusCode);
+        Assert.Equal("application/problem+json", response.Content.Headers.ContentType?.MediaType);
+        var body = await response.Content.ReadFromJsonAsync<System.Text.Json.JsonElement>();
+        Assert.Equal(500, body.GetProperty("status").GetInt32());
+    }
+
     [Fact]
     public async Task 作者の公開範囲変更が保存され次の閲覧判定に反映される()
     {
@@ -113,5 +171,23 @@ public sealed class Apiテスト
         using var response = await client.PutAsync("/stories/public-free/visibility", content);
 
         Assert.True(response.StatusCode == HttpStatusCode.BadRequest, caseName);
+    }
+
+    private sealed class 障害を起こす事実取得 : 閲覧事実取得
+    {
+        public Task<フォロー確認結果> フォローしているか(
+            利用者ID viewer,
+            利用者ID author,
+            CancellationToken ct
+        ) => throw new IOException();
+
+        public Task<会員確認結果> VIPか(利用者ID viewer, CancellationToken ct) =>
+            throw new IOException();
+
+        public Task<購入確認結果> 購入済みか(
+            利用者ID viewer,
+            ストーリーID storyId,
+            CancellationToken ct
+        ) => throw new IOException();
     }
 }

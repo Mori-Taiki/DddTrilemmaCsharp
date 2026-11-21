@@ -1,5 +1,6 @@
 using System.Data.Common;
 using Demo.Api;
+using Demo.Domain;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
@@ -37,6 +38,9 @@ internal sealed class テスト用データベース : IAsyncDisposable, IDbCont
     public int クエリ数 => counter.count;
 
     public void 計測を開始する() => counter.count = 0;
+
+    public Task 購入を保存する(string viewer, string storyId) =>
+        保存する(new 購入 { 閲覧者 = viewer, ストーリーID = new ストーリーID(storyId) });
 
     public async Task 保存する(params object[] entities)
     {

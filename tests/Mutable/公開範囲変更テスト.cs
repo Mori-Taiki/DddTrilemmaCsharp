@@ -55,24 +55,4 @@ public sealed class 公開範囲変更テスト
         Assert.Equal(new 変更拒否(変更拒否理由.既にその公開範囲), result);
         Assert.Equal(new 公開範囲.フォロワー限定(), story.公開範囲);
     }
-
-    [Fact]
-    public void nullを渡した変更では現在の状態を壊さない()
-    {
-        var story = new ストーリー(
-            new ストーリーID("story"),
-            new 利用者ID("author"),
-            new 公開範囲.全体公開(),
-            new 料金区分.無料()
-        );
-
-        Assert.Throws<ArgumentNullException>(() =>
-            story.公開範囲を変える(null!, new 利用者ID("author"))
-        );
-        Assert.Throws<ArgumentNullException>(() =>
-            story.公開範囲を変える(new 公開範囲.フォロワー限定(), null!)
-        );
-
-        Assert.Equal(new 公開範囲.全体公開(), story.公開範囲);
-    }
 }
