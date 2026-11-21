@@ -49,32 +49,40 @@ public sealed class AppDb(DbContextOptions<AppDb> options) : DbContext(options)
 
 public sealed class EfCore閲覧事実取得(IDbContextFactory<AppDb> factory) : 閲覧事実取得
 {
-    public async Task<bool> フォローしているか(
+    public async Task<フォロー確認結果> フォローしているか(
         利用者ID viewer,
         利用者ID author,
         CancellationToken ct
     )
     {
         await using var db = await factory.CreateDbContextAsync(ct);
-        return await db
-            .フォロー関係.AsNoTracking()
-            .AnyAsync(x => x.閲覧者 == viewer.値 && x.作者 == author.値, ct);
+        return new フォロー確認結果(
+            await db
+                .フォロー関係.AsNoTracking()
+                .AnyAsync(x => x.閲覧者 == viewer.値 && x.作者 == author.値, ct)
+        );
     }
 
-    public async Task<bool> VIPか(利用者ID viewer, CancellationToken ct)
+    public async Task<会員確認結果> VIPか(利用者ID viewer, CancellationToken ct)
     {
         await using var db = await factory.CreateDbContextAsync(ct);
-        return await db
-            .会員一覧.AsNoTracking()
-            .AnyAsync(x => x.閲覧者 == viewer.値 && x.VIPである, ct);
+        return new 会員確認結果(
+            await db.会員一覧.AsNoTracking().AnyAsync(x => x.閲覧者 == viewer.値 && x.VIPである, ct)
+        );
     }
 
-    public async Task<bool> 購入済みか(利用者ID viewer, ストーリーID storyId, CancellationToken ct)
+    public async Task<購入確認結果> 購入済みか(
+        利用者ID viewer,
+        ストーリーID storyId,
+        CancellationToken ct
+    )
     {
         await using var db = await factory.CreateDbContextAsync(ct);
-        return await db
-            .購入一覧.AsNoTracking()
-            .AnyAsync(x => x.閲覧者 == viewer.値 && x.ストーリーID == storyId.値, ct);
+        return new 購入確認結果(
+            await db
+                .購入一覧.AsNoTracking()
+                .AnyAsync(x => x.閲覧者 == viewer.値 && x.ストーリーID == storyId.値, ct)
+        );
     }
 }
 

@@ -62,6 +62,8 @@ C# 15の `union` 宣言との違いは、ケースの表現と初期値の扱い
 
 判定結果に加え、入力も型で区別します。作品を示す `ストーリーID` と、人を示す `利用者ID` は別の型です。作者・閲覧者・実行者には共通の `利用者ID` を使い、空のIDや未知の公開範囲を入口で拒否します。判定の途中では、検証済みの値を扱えます。
 
+取得結果の取り違えを防ぐため、[事実の種類ごとに型を分け](src/Domain/閲覧の事実.cs)、取得から判定の再開まで保ちます。対象の利用者・作品や値の正しさは、クエリとテストで確かめます。
+
 ## 状態変更を値で返すか、エンティティ自身を変えるか
 
 ここまでの閲覧判定は、事実を読んで結果を返す **Query** です。次に、公開範囲を変える **Command** を考えます。このリポジトリでは、同じ業務ルールを2通りのモデルで比較できます。
@@ -137,4 +139,4 @@ dotnet test DddDemo.sln -p:StoryModel=Mutable
 
 `viewer` を `guest`・`follower`・`vip`・`buyer`・`author` に変えると、結果・判定経路・追加クエリ数を比較できます。追加クエリ数には、最初のストーリー取得は含みません。利用者指定はデモ用で、認証ではありません。
 
-閲覧ルールの仕様テストは [tests/Domain](tests/Domain)、HTTPと境界値の仕様テストは [tests/Api](tests/Api)、各方式に固有のテストは [tests/Immutable](tests/Immutable) と [tests/Mutable](tests/Mutable) にあります。可変版では、変更の保存・拒否時の不変性・追跡しない場合の挙動も実SQLiteで検証します。両版のケース追加時のビルドエラーは `python3 scripts/check_exhaustiveness.py` で確認できます。
+閲覧ルールの仕様テストは [tests/Domain](tests/Domain)、HTTPと境界値の仕様テストは [tests/Api](tests/Api)、各方式に固有のテストは [tests/Immutable](tests/Immutable) と [tests/Mutable](tests/Mutable) にあります。可変版では、変更の保存・拒否時の不変性・追跡しない場合の挙動も実SQLiteで検証します。型による保証は `python3 scripts/check_exhaustiveness.py` で確認できます。

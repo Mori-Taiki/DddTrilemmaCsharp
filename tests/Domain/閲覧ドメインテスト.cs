@@ -52,7 +52,7 @@ public sealed class 閲覧ドメインテスト
             Assert.IsType<事実取得待ち>(閲覧.開始(story, new 利用者ID("reader"))).要求
         );
 
-        var result = decision.結果(false);
+        var result = decision.結果(new フォロー確認結果(false));
 
         Assert.Equal(new 拒否(閲覧拒否理由.フォローが必要), Assert.IsType<判定完了>(result).結果);
     }
@@ -70,7 +70,7 @@ public sealed class 閲覧ドメインテスト
             Assert.IsType<事実取得待ち>(閲覧.開始(story, new 利用者ID("reader"))).要求
         );
 
-        var result = decision.結果(true);
+        var result = decision.結果(new 会員確認結果(true));
 
         Assert.IsType<許可>(Assert.IsType<判定完了>(result).結果);
     }
@@ -90,10 +90,10 @@ public sealed class 閲覧ドメインテスト
             Assert.IsType<事実取得待ち>(閲覧.開始(story, new 利用者ID("reader"))).要求
         );
         var purchase = Assert.IsType<購入確認が必要>(
-            Assert.IsType<事実取得待ち>(membership.結果(false)).要求
+            Assert.IsType<事実取得待ち>(membership.結果(new 会員確認結果(false))).要求
         );
 
-        var result = purchase.結果(hasPurchased);
+        var result = purchase.結果(new 購入確認結果(hasPurchased));
 
         Assert.Equal<閲覧結果>(
             hasPurchased ? new 許可() : new 拒否(閲覧拒否理由.購入が必要),

@@ -13,22 +13,24 @@ public sealed record 事実取得待ち(事実要求 要求) : 閲覧判定;
 public closed record 事実要求;
 public sealed record フォロー確認が必要(ストーリー 対象, 利用者ID 閲覧者) : 事実要求
 {
-    public 閲覧判定 結果(bool isFollowing) =>
-        isFollowing
+    public 閲覧判定 結果(フォロー確認結果 fact) =>
+        fact.フォローしている
             ? 閲覧.有料かどうか(対象, 閲覧者)
             : new 判定完了(new 拒否(閲覧拒否理由.フォローが必要));
 }
 
 public sealed record 会員確認が必要(ストーリー 対象, 利用者ID 閲覧者) : 事実要求
 {
-    public 閲覧判定 結果(bool isVip) =>
-        isVip ? new 判定完了(new 許可()) : new 事実取得待ち(new 購入確認が必要(対象, 閲覧者));
+    public 閲覧判定 結果(会員確認結果 fact) =>
+        fact.VIPである
+            ? new 判定完了(new 許可())
+            : new 事実取得待ち(new 購入確認が必要(対象, 閲覧者));
 }
 
 public sealed record 購入確認が必要(ストーリー 対象, 利用者ID 閲覧者) : 事実要求
 {
-    public 閲覧判定 結果(bool hasPurchased) =>
-        new 判定完了(hasPurchased ? new 許可() : new 拒否(閲覧拒否理由.購入が必要));
+    public 閲覧判定 結果(購入確認結果 fact) =>
+        new 判定完了(fact.購入済み ? new 許可() : new 拒否(閲覧拒否理由.購入が必要));
 }
 
 public static class 閲覧
