@@ -5,9 +5,13 @@ namespace Demo.Api;
 
 public interface 閲覧事実取得
 {
-    Task<bool> フォローしているか(利用者ID viewer, 利用者ID author, CancellationToken ct);
-    Task<bool> VIPか(利用者ID viewer, CancellationToken ct);
-    Task<bool> 購入済みか(利用者ID viewer, ストーリーID storyId, CancellationToken ct);
+    Task<フォロー確認結果> フォローしているか(
+        利用者ID viewer,
+        利用者ID author,
+        CancellationToken ct
+    );
+    Task<会員確認結果> VIPか(利用者ID viewer, CancellationToken ct);
+    Task<購入確認結果> 購入済みか(利用者ID viewer, ストーリーID storyId, CancellationToken ct);
 }
 
 public sealed record 閲覧判定応答(

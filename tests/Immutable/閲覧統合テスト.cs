@@ -232,15 +232,19 @@ public sealed class 閲覧統合テスト
     // 障害を安定して再現するためにのみスタブを使う。呼び出し順序は検証しない。
     private sealed class 障害を起こす事実取得 : 閲覧事実取得
     {
-        public Task<bool> フォローしているか(
+        public Task<フォロー確認結果> フォローしているか(
             利用者ID viewer,
             利用者ID author,
             CancellationToken ct
         ) => throw new IOException();
 
-        public Task<bool> VIPか(利用者ID viewer, CancellationToken ct) => throw new IOException();
-
-        public Task<bool> 購入済みか(利用者ID viewer, ストーリーID storyId, CancellationToken ct) =>
+        public Task<会員確認結果> VIPか(利用者ID viewer, CancellationToken ct) =>
             throw new IOException();
+
+        public Task<購入確認結果> 購入済みか(
+            利用者ID viewer,
+            ストーリーID storyId,
+            CancellationToken ct
+        ) => throw new IOException();
     }
 }

@@ -1,4 +1,4 @@
-"""実装の一時コピーにケースを追加し、コンパイル時の保証を検証する。"""
+"""実装の一時コピーにケース追加や不正な接続を行い、コンパイル時の保証を検証する。"""
 from pathlib import Path
 import shutil
 import subprocess
@@ -52,12 +52,35 @@ for variant, model, setter_diagnostic in [
             extra.unlink()
             print(f"PASS [{model}]: {name}のケース追加はCS8509で検出される", flush=True)
 
-        for name, source, diagnostic in [
+        invalid_operations = [
             ("利用者IDとストーリーIDは取り違えられない",
              "public static void Run(ストーリー story) => 閲覧.開始(story, new ストーリーID(\"s\"));", "CS1503"),
             ("公開範囲を外から直接書き換えられない",
              "public static void Run(ストーリー story) { story.公開範囲 = new 公開範囲.全体公開(); }", setter_diagnostic),
-        ]:
+        ]
+
+        fact_sources = [
+            ("フォロー確認が必要", "facts.フォローしているか(request.閲覧者, request.対象.作者, default)"),
+            ("会員確認が必要", "facts.VIPか(request.閲覧者, default)"),
+            ("購入確認が必要", "facts.購入済みか(request.閲覧者, request.対象.ID, default)"),
+        ]
+        for request_type, _ in fact_sources:
+            for other_type, query in fact_sources:
+                if request_type == other_type:
+                    continue
+                invalid_operations.append((
+                    f"{request_type}に{other_type}の取得結果は渡せない",
+                    f"public static async Task<閲覧判定> Run({request_type} request, Demo.Api.閲覧事実取得 facts) "
+                    f"=> request.結果(await {query});",
+                    "CS1503",
+                ))
+            invalid_operations.append((
+                f"{request_type}に生のboolは渡せない",
+                f"public static 閲覧判定 Run({request_type} request) => request.結果(true);",
+                "CS1503",
+            ))
+
+        for name, source, diagnostic in invalid_operations:
             extra = target / "不正な操作.cs"
             extra.write_text(f"using Demo.Domain; public static class Probe {{ {source} }}")
             result = build()
