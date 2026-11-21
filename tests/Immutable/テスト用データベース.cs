@@ -39,6 +39,9 @@ internal sealed class テスト用データベース : IAsyncDisposable, IDbCont
 
     public void 計測を開始する() => counter.count = 0;
 
+    public Task 購入を保存する(string viewer, string storyId) =>
+        保存する(new 購入 { 閲覧者 = viewer, ストーリーID = storyId });
+
     public async Task 保存する(params object[] entities)
     {
         await using var db = CreateDbContext();

@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Demo.Tests;
 
-public sealed class 閲覧統合テスト
+public sealed class 可変モデルの閲覧統合テスト
 {
     [Theory]
     [InlineData("作者は追加取得しない", "author", 0, null)]
