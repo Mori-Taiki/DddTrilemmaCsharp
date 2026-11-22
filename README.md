@@ -141,13 +141,27 @@ Queryはどちらも `AsNoTracking` で読み、「フォローしているか�
 
 このサンプルは単件判定です。一覧への拡張では、事実を先に一括取得する方法や、判定途中の要求をまとめて取得する方法を、取得量と往復回数のコストに応じて選べます。
 
-## 仕様の検証をさらに先へ進める
+## 日本語の仕様を両実装で共有する
 
 購入確認の処理を書き忘れれば、型の網羅性検査で気づけます。一方、その処理に「未購入でも許可する」と書いてしまう間違いは、期待する業務結果との照合で見つけます。そのため本実装では、「有料作品の一般会員は購入済みの場合だけ閲覧できる」といった具体的な仕様を、日本語のテストケースにしています。
 
+[閲覧仕様一覧](tests/Specifications/閲覧仕様一覧.cs)に15件の入力と期待値をまとめ、StateMachineとContinuationで共有しています。[仕様を表す型](tests/Specifications/閲覧仕様.cs)を使うと、booleanの並びではなく、作品・閲覧者の条件と期待する振る舞いとして読めます。次の例では、条件や期待値の名前を `using static` で取り込んでいます。
+
+```csharp
+new 閲覧仕様(
+    "有料限定はフォロー済みVIPなら購入確認なしで読める",
+    入力: new(フォロワー限定の有料作品, new(作者以外, フォロー済み, VIP会員, 未購入)),
+    期待: 許可される(フォロー確認, 会員確認)
+)
+```
+
+期待値には許可・拒否理由と、取得する事実の順序を明記します。期待値を入力から計算したり、片方の実装の出力を正解にしたりはしません。両実装のドメインテストはこの同じ仕様に回答を与え、要求先のID・要求順序・最終結果をI/Oやモックなしで確認します。要求を再開する部分だけ、それぞれ `結果(...)` / `続ける(...)` を使います。
+
+実SQLiteの統合テストも同じ入力からデータを保存し、同じ期待値で結果と追加クエリ数を確認します。現在は一つの事実要求につき一回のSELECTを行うため、取得順序の長さが期待するクエリ数になります。各実行で新しいストーリーを作るので、可変モデルでも仕様ケース同士でエンティティを共有しません。他人・別作品のデータの分離や、障害・キャンセルは別のテストで検証します。
+
 この仕様と実装の関係をさらに進める方向として、[SoutherによるDDDトリレンマへのアプローチ](https://zenn.dev/kawasima/articles/souther-ddd-trilemma)があります。Decisionパターンでは途中状態を手で型にする必要がありますが、Southerは振る舞いの契約と合成可能性に注目します。入出力の関係を事後条件で表し、仕様例の不足を機械的に調べ、同じ仕様例で外部実装も検証します。
 
-現在はドメインの判断をメモリ上で、取得・保存を実SQLiteでテストし、両実装に同じHTTPの仕様テストを適用しています。今後、ドメインと外部実装を共通の契約から検証することが発展の方向です。
+現在の共通仕様は具体例を列挙したものです。今後は、事後条件や性質として契約を表し、仕様例の不足も調べることが発展の方向です。
 
 ## 動かして確認する
 
@@ -185,4 +199,4 @@ dotnet test tests/Continuation/Continuation.Tests.csproj
 
 `viewer` を `guest`・`follower`・`vip`・`buyer`・`author` に変えると、結果・判定経路・追加クエリ数を比較できます。追加クエリ数には、最初のストーリー取得は含みません。利用者指定はデモ用で、認証ではありません。
 
-閲覧の純粋な判断のテストは [tests/StateMachine](tests/StateMachine) と [tests/Continuation](tests/Continuation) にあります。入力検証の [tests/Domain](tests/Domain)、HTTP・実SQLiteの [tests/Api](tests/Api)、各モデルの [tests/Immutable](tests/Immutable) と [tests/Mutable](tests/Mutable) は二つのテストプロジェクトで共用し、同じ仕様を両実装に適用します。可変版では、変更の保存・拒否時の不変性・追跡しない場合の挙動も実SQLiteで検証します。型による保証は `python3 scripts/check_exhaustiveness.py` で4通りすべてを確認できます。
+閲覧の純粋な判断のテストは [tests/StateMachine](tests/StateMachine) と [tests/Continuation](tests/Continuation) にあります。共通の入力・期待値は [tests/Specifications](tests/Specifications) にあります。入力検証の [tests/Domain](tests/Domain)、HTTP・実SQLiteの [tests/Api](tests/Api)、各モデルの [tests/Immutable](tests/Immutable) と [tests/Mutable](tests/Mutable) は二つのテストプロジェクトで共用し、同じ仕様を両実装に適用します。可変版では、変更の保存・拒否時の不変性・追跡しない場合の挙動も実SQLiteで検証します。型による保証は `python3 scripts/check_exhaustiveness.py` で4通りすべてを確認できます。

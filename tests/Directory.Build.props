@@ -16,6 +16,10 @@
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="11.0.0" />
     <Using Include="Xunit" />
     <Compile
+      Include="$(MSBuildThisFileDirectory)Specifications/**/*.cs"
+      Link="Specifications/%(RecursiveDir)%(Filename)%(Extension)"
+    />
+    <Compile
       Include="$(MSBuildThisFileDirectory)Api/**/*.cs"
       Link="Api/%(RecursiveDir)%(Filename)%(Extension)"
     />

@@ -1,4 +1,3 @@
-using Demo.Api;
 using Demo.Domain;
 
 namespace Demo.Tests;
@@ -6,98 +5,51 @@ namespace Demo.Tests;
 public sealed class 閲覧ドメインテスト
 {
     [Theory]
-    [InlineData("全体公開", "無料")]
-    [InlineData("全体公開", "有料")]
-    [InlineData("フォロワー限定", "無料")]
-    [InlineData("フォロワー限定", "有料")]
-    public void 作者本人は公開範囲と料金によらず閲覧できる(string visibility, string price)
+    [ClassData(typeof(閲覧仕様一覧))]
+    public void 共通の仕様どおりに事実を要求して判定する(閲覧仕様 仕様)
     {
-        var story = new ストーリー(
-            new ストーリーID("story"),
-            new 利用者ID("author"),
-            境界値.公開範囲を読む(visibility)!,
-            境界値.料金を読む(price)!
-        );
+        var story = 仕様.入力.作品.作成する();
+        var reader = 仕様.入力.閲覧者;
+        var decision = 閲覧.開始(story, reader.ID);
+        var requested = new List<取得する事実>();
 
-        var result = 閲覧.開始(story, new 利用者ID("author"));
+        // 期待する取得回数だけ応答し、その直後に完了することを確認する。
+        // 回答する種類は、期待値ではなく実装が実際に返した要求から選ぶ。
+        for (var step = 0; step < 仕様.期待.取得順序.Length; step++)
+        {
+            var request = Assert.IsType<事実取得待ち>(decision).要求;
+            decision = request switch
+            {
+                フォロー確認が必要 follow => フォローに答える(follow),
+                会員確認が必要 membership => 会員確認に答える(membership),
+                購入確認が必要 purchase => 購入確認に答える(purchase),
+            };
+        }
 
-        Assert.IsType<許可>(Assert.IsType<判定完了>(result).結果);
-    }
+        Assert.Equal(仕様.期待.結果, Assert.IsType<判定完了>(decision).結果);
+        Assert.Equal<取得する事実>(仕様.期待.取得順序, requested);
 
-    [Fact]
-    public void 全体公開の無料作品は追加の事実なしで閲覧できる()
-    {
-        var story = new ストーリー(
-            new ストーリーID("story"),
-            new 利用者ID("author"),
-            new 公開範囲.全体公開(),
-            new 料金区分.無料()
-        );
+        閲覧判定 フォローに答える(フォロー確認が必要 request)
+        {
+            Assert.Equal(reader.ID, request.閲覧者);
+            Assert.Equal(story.作者, request.作者);
+            requested.Add(取得する事実.フォロー確認);
+            return request.続ける(reader.フォローの回答);
+        }
 
-        var result = 閲覧.開始(story, new 利用者ID("reader"));
+        閲覧判定 会員確認に答える(会員確認が必要 request)
+        {
+            Assert.Equal(reader.ID, request.閲覧者);
+            requested.Add(取得する事実.会員確認);
+            return request.続ける(reader.会員の回答);
+        }
 
-        Assert.IsType<許可>(Assert.IsType<判定完了>(result).結果);
-    }
-
-    [Fact]
-    public void フォロワー限定作品は非フォロワーの閲覧を拒否する()
-    {
-        var story = new ストーリー(
-            new ストーリーID("story"),
-            new 利用者ID("author"),
-            new 公開範囲.フォロワー限定(),
-            new 料金区分.無料()
-        );
-        var decision = Assert.IsType<フォロー確認が必要>(
-            Assert.IsType<事実取得待ち>(閲覧.開始(story, new 利用者ID("reader"))).要求
-        );
-
-        var result = decision.続ける(new フォロー確認結果(false));
-
-        Assert.Equal(new 拒否(閲覧拒否理由.フォローが必要), Assert.IsType<判定完了>(result).結果);
-    }
-
-    [Fact]
-    public void 有料作品はVIP会員なら購入確認なしで閲覧できる()
-    {
-        var story = new ストーリー(
-            new ストーリーID("story"),
-            new 利用者ID("author"),
-            new 公開範囲.全体公開(),
-            new 料金区分.有料()
-        );
-        var decision = Assert.IsType<会員確認が必要>(
-            Assert.IsType<事実取得待ち>(閲覧.開始(story, new 利用者ID("reader"))).要求
-        );
-
-        var result = decision.続ける(new 会員確認結果(true));
-
-        Assert.IsType<許可>(Assert.IsType<判定完了>(result).結果);
-    }
-
-    [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public void 有料作品の一般会員は購入済みの場合だけ閲覧できる(bool hasPurchased)
-    {
-        var story = new ストーリー(
-            new ストーリーID("story"),
-            new 利用者ID("author"),
-            new 公開範囲.全体公開(),
-            new 料金区分.有料()
-        );
-        var membership = Assert.IsType<会員確認が必要>(
-            Assert.IsType<事実取得待ち>(閲覧.開始(story, new 利用者ID("reader"))).要求
-        );
-        var purchase = Assert.IsType<購入確認が必要>(
-            Assert.IsType<事実取得待ち>(membership.続ける(new 会員確認結果(false))).要求
-        );
-
-        var result = purchase.続ける(new 購入確認結果(hasPurchased));
-
-        Assert.Equal<閲覧結果>(
-            hasPurchased ? new 許可() : new 拒否(閲覧拒否理由.購入が必要),
-            Assert.IsType<判定完了>(result).結果
-        );
+        閲覧判定 購入確認に答える(購入確認が必要 request)
+        {
+            Assert.Equal(reader.ID, request.閲覧者);
+            Assert.Equal(story.ID, request.作品);
+            requested.Add(取得する事実.購入確認);
+            return request.続ける(reader.購入の回答);
+        }
     }
 }
