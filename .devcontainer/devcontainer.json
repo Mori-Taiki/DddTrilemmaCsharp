@@ -8,11 +8,17 @@
   "postCreateCommand": "bash .devcontainer/setup.sh",
   "waitFor": "postCreateCommand",
   "forwardPorts": [
-    5080
+    5080,
+    5081
   ],
   "portsAttributes": {
     "5080": {
-      "label": "DDD API",
+      "label": "StateMachine API",
+      "protocol": "http",
+      "onAutoForward": "notify"
+    },
+    "5081": {
+      "label": "Continuation API",
       "protocol": "http",
       "onAutoForward": "notify"
     }

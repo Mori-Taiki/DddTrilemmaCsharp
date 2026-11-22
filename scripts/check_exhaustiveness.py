@@ -6,13 +6,13 @@ import sys
 import tempfile
 
 root = Path(__file__).resolve().parents[1]
-src = root / "src"
 dotnet = str(Path(sys.argv[1]).resolve()) if len(sys.argv) > 1 else "dotnet"
 
-for variant, model, setter_diagnostic in [
-    ("Immutable", "不変版", "CS0200"),
-    ("Mutable", "可変版", "CS0272"),
-]:
+
+def check(implementation, variant, model, setter_diagnostic):
+    src = root / "src" / implementation
+    model = f"{implementation}/{model}"
+    resume = "結果" if implementation == "StateMachine" else "続ける"
     with tempfile.TemporaryDirectory(prefix="ddd-type-check-") as directory:
         target = Path(directory)
         for source in (src / "Domain").glob("*.cs"):
@@ -60,9 +60,9 @@ for variant, model, setter_diagnostic in [
         ]
 
         fact_sources = [
-            ("フォロー確認が必要", "facts.フォローしているか(request.閲覧者, request.対象.作者, default)"),
+            ("フォロー確認が必要", "facts.フォローしているか(new 利用者ID(\"reader\"), new 利用者ID(\"author\"), default)"),
             ("会員確認が必要", "facts.VIPか(request.閲覧者, default)"),
-            ("購入確認が必要", "facts.購入済みか(request.閲覧者, request.対象.ID, default)"),
+            ("購入確認が必要", "facts.購入済みか(new 利用者ID(\"reader\"), new ストーリーID(\"story\"), default)"),
         ]
         for request_type, _ in fact_sources:
             for other_type, query in fact_sources:
@@ -71,12 +71,12 @@ for variant, model, setter_diagnostic in [
                 invalid_operations.append((
                     f"{request_type}に{other_type}の取得結果は渡せない",
                     f"public static async Task<閲覧判定> Run({request_type} request, Demo.Api.閲覧事実取得 facts) "
-                    f"=> request.結果(await {query});",
+                    f"=> request.{resume}(await {query});",
                     "CS1503",
                 ))
             invalid_operations.append((
                 f"{request_type}に生のboolは渡せない",
-                f"public static 閲覧判定 Run({request_type} request) => request.結果(true);",
+                f"public static 閲覧判定 Run({request_type} request) => request.{resume}(true);",
                 "CS1503",
             ))
 
@@ -88,3 +88,11 @@ for variant, model, setter_diagnostic in [
                 sys.exit(f"FAIL: {name}\n{result.stdout}{result.stderr}")
             extra.unlink()
             print(f"PASS [{model}]: {name}", flush=True)
+
+
+for implementation in ["StateMachine", "Continuation"]:
+    for variant, model, diagnostic in [
+        ("Immutable", "不変版", "CS0200"),
+        ("Mutable", "可変版", "CS0272"),
+    ]:
+        check(implementation, variant, model, diagnostic)

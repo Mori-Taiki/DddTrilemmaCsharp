@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="../../src/StateMachine/Api/StateMachine.Api.csproj" />
+  </ItemGroup>
+</Project>
