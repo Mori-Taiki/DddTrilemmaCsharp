@@ -62,7 +62,42 @@ C# 15の `union` 宣言との違いは、ケースの表現と初期値の扱い
 
 判定結果に加え、入力も型で区別します。作品を示す `ストーリーID` と、人を示す `利用者ID` は別の型です。作者・閲覧者・実行者には共通の `利用者ID` を使い、空のIDや未知の公開範囲を入口で拒否します。判定の途中では、検証済みの値を扱えます。
 
-取得結果の取り違えを防ぐため、[事実の種類ごとに型を分け](src/Domain/閲覧の事実.cs)、取得から判定の再開まで保ちます。対象の利用者・作品や値の正しさは、クエリとテストで確かめます。
+取得結果の取り違えを防ぐため、[事実の種類ごとに型を分け](src/StateMachine/Domain/閲覧の事実.cs)、取得から判定の再開まで保ちます。対象の利用者・作品や値の正しさは、クエリとテストで確かめます。
+
+## 二つの継続表現を比較する
+
+`Api` と `Domain` を実装方式ごとにまとめています。両方とも同じ閲覧・公開範囲変更APIを提供し、それぞれ `StoryModel=Immutable` / `Mutable` を選べます。
+
+```text
+src/
+  StateMachine/     # 要求型のメソッドで判断を再開する既存版
+    Api/
+    Domain/
+  Continuation/     # 要求と一緒にFuncで継続を返す版
+    Api/
+    Domain/
+```
+
+| 比較する場所 | StateMachine | Continuation |
+|---|---|---|
+| 要求と業務判断 | [要求型の `結果(...)` メソッド](src/StateMachine/Domain/閲覧.cs) | [型付きの `Func<回答型, 閲覧判定>`](src/Continuation/Domain/閲覧.cs) |
+| 事実取得と再開 | [`結果(...)` を呼ぶ](src/StateMachine/Api/閲覧判定サービス.cs) | [`続ける(...)` に回答を渡す](src/Continuation/Api/閲覧判定サービス.cs) |
+| HTTPのポート | 5080 | 5081 |
+
+継続版では、例えば会員確認を次の値で表します。
+
+```csharp
+public sealed record 会員確認が必要(
+    利用者ID 閲覧者,
+    Func<会員確認結果, 閲覧判定> 続ける
+) : 事実要求;
+```
+
+要求型には問い合わせに使うIDと継続を置きます。VIPなら許可、一般会員なら購入確認へ進むという判断は、`閲覧.開始` が組み立てるラムダにあります。解釈器はDBから取得した事実を `続ける` に渡します。同じ種類の要求に、呼び出し元ごとに異なる続きを渡せます。
+
+継続は判定開始時の作品ID・料金などの不変な値を捕捉します。`Mutable` でもストーリー本体を捕捉しません。これはプロセス内の値の扱いであり、複数回のDB読み取りのスナップショット分離を保証するものではありません。C#の `Func` は純粋性を強制しないため、継続の中にはI/Oや共有状態の変更を入れません。関数を含む途中状態は、そのままJSON保存したり、recordの等価性で振る舞いを比較したりする用途には向きません。
+
+[継続のテスト](tests/Continuation/継続テスト.cs)ではI/Oやモックを使わず、要求のIDと回答後の状態を確認します。同じ継続に違う回答を渡して分岐を調べ、複数の判定を交互に再開しても値が混ざらないことも検証します。この実装は結果型を閲覧判定に固定したもので、汎用のFree/Freer Monadの合成APIは実装していません。
 
 ## 状態変更を値で返すか、エンティティ自身を変えるか
 
@@ -96,11 +131,11 @@ if (result is 変更できた)
 
 | 比較する場所 | 不変版 | 可変版 |
 |---|---|---|
-| 状態と変更 | [新しい状態を返す](src/Domain/Immutable/ストーリー.cs) | [自身を変更する](src/Domain/Mutable/ストーリー.cs) |
-| EFの追跡対象 | [ストーリー行](src/Api/Immutable/ストーリー行.cs) | [ストーリーを直接マッピング](src/Api/Mutable/Database.cs) |
-| 保存の呼び出し | [適用してから保存](src/Api/Immutable/ストーリーAPI.cs) | [変更後にそのまま保存](src/Api/Mutable/ストーリーAPI.cs) |
+| 状態と変更 | [新しい状態を返す](src/StateMachine/Domain/Immutable/ストーリー.cs) | [自身を変更する](src/StateMachine/Domain/Mutable/ストーリー.cs) |
+| EFの追跡対象 | [ストーリー行](src/StateMachine/Api/Immutable/ストーリー行.cs) | [ストーリーを直接マッピング](src/StateMachine/Api/Mutable/Database.cs) |
+| 保存の呼び出し | [適用してから保存](src/StateMachine/Api/Immutable/ストーリーAPI.cs) | [変更後にそのまま保存](src/StateMachine/Api/Mutable/ストーリーAPI.cs) |
 
-閲覧ルールと値オブジェクトは [src/Domain](src/Domain)、閲覧判定サービスとAPIの起動処理は [src/Api](src/Api) にあります。どちらも直下の `Immutable/` と `Mutable/` に各方式の実装を置いています。ビルド時に `StoryModel` で選んだモデルをドメイン・API・テストに組み込みます。既定は `Immutable` です。
+各方式の `Domain` に閲覧ルールと値オブジェクト、`Api` に閲覧判定サービスとAPIの起動処理があります。各プロジェクト直下の `Immutable/` と `Mutable/` に各方式の実装を置いています。ビルド時に `StoryModel` で選んだモデルをドメイン・API・テストに組み込みます。既定は `Immutable` です。
 
 Queryはどちらも `AsNoTracking` で読み、「フォローしているか」などの事実取得ポートを通して判定します。可変版でも、取得したオブジェクトを判定中に変更しません。Commandは追跡して変更を保存する、Queryは読んで結果を返す、という役割の違いです。
 
@@ -119,26 +154,35 @@ Queryはどちらも `AsNoTracking` で読み、「フォローしているか�
 [GitHub Codespacesで開く](https://codespaces.new/Mori-Taiki/DddTrilemmaCsharp)と、SDKの準備・依存関係の復元・ビルドが自動で行われます。ローカルでは.NET SDK **11.0.100**を導入してcloneしてください。リポジトリ直下で起動します。
 
 ```bash
-# 不変モデルで起動
-dotnet run --project src/Api
+# 既存の状態機械版（5080）
+dotnet run --project src/StateMachine/Api
 
-# Ctrl+C で停止してから可変モデルで起動
-dotnet run --project src/Api -p:StoryModel=Mutable
+# 別のターミナルで継続関数版（5081）
+dotnet run --project src/Continuation/Api
+
+# 可変モデルで試す場合（同じポートのAPIは先に停止）
+dotnet run --project src/Continuation/Api -p:StoryModel=Mutable
 ```
 
-どちらもローカルでは `http://localhost:5080`、Codespacesでは **Ports → 5080** を開きます。VS Codeでは「APIを起動」タスクでモデルを選べます。
+StateMachineは `http://localhost:5080`、Continuationは `http://localhost:5081` です。Codespacesでは **Ports** から対応するポートを開きます。VS Codeでは「APIを起動」で実装方式とモデルを選べます。
 
-両方式で同じSQLite DB（`src/Api/app.db`）を使うため、公開範囲の変更は切り替え後も引き継がれます。以前のDBを使うには、起動コマンドの末尾に `-- --DatabasePath /path/to/app.db` を指定します。
+SQLite DBはそれぞれの `Api/app.db` に作られ、StateMachineとContinuationで独立しています。同じ方式の不変／可変モデルはDBを共有します。以前の `src/Api/app.db` はGit管理外のため移動されません。既存のDBや共通のDBを使うには、起動コマンドの末尾に `-- --DatabasePath /path/to/app.db` を指定してください。
 
 ```bash
 curl 'http://localhost:5080/stories/followers-paid/view?viewer=vip'
 curl -X PUT http://localhost:5080/stories/public-free/visibility \
   -H 'Content-Type: application/json' \
   -d '{"actor":"author","visibility":"フォロワー限定"}'
+# 両実装を不変モデルでテスト
 dotnet test DddDemo.sln
+# 両実装を可変モデルでテスト
 dotnet test DddDemo.sln -p:StoryModel=Mutable
+# 継続関数版だけをテスト
+dotnet test tests/Continuation/Continuation.Tests.csproj
 ```
+
+継続版を試すときはcurlのポートを `5081` に変えてください。
 
 `viewer` を `guest`・`follower`・`vip`・`buyer`・`author` に変えると、結果・判定経路・追加クエリ数を比較できます。追加クエリ数には、最初のストーリー取得は含みません。利用者指定はデモ用で、認証ではありません。
 
-閲覧ルールの仕様テストは [tests/Domain](tests/Domain)、HTTPと境界値の仕様テストは [tests/Api](tests/Api)、各方式に固有のテストは [tests/Immutable](tests/Immutable) と [tests/Mutable](tests/Mutable) にあります。可変版では、変更の保存・拒否時の不変性・追跡しない場合の挙動も実SQLiteで検証します。型による保証は `python3 scripts/check_exhaustiveness.py` で確認できます。
+閲覧の純粋な判断のテストは [tests/StateMachine](tests/StateMachine) と [tests/Continuation](tests/Continuation) にあります。入力検証の [tests/Domain](tests/Domain)、HTTP・実SQLiteの [tests/Api](tests/Api)、各モデルの [tests/Immutable](tests/Immutable) と [tests/Mutable](tests/Mutable) は二つのテストプロジェクトで共用し、同じ仕様を両実装に適用します。可変版では、変更の保存・拒否時の不変性・追跡しない場合の挙動も実SQLiteで検証します。型による保証は `python3 scripts/check_exhaustiveness.py` で4通りすべてを確認できます。

@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="../../src/Continuation/Api/Continuation.Api.csproj" />
+  </ItemGroup>
+</Project>
