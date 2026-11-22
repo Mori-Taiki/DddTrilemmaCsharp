@@ -48,6 +48,8 @@ public sealed record 作品の条件(公開範囲 公開範囲, 料金区分 料
     // 可変モデルでも、仕様ケース同士でエンティティを共有しない。
     public ストーリー 作成する() =>
         new(new ストーリーID("story"), new 利用者ID("author"), 公開範囲, 料金);
+
+    public override string ToString() => $"{公開範囲.GetType().Name}の{料金.GetType().Name}作品";
 }
 
 public sealed record 閲覧者の条件(
@@ -61,9 +63,14 @@ public sealed record 閲覧者の条件(
     public フォロー確認結果 フォローの回答 => new(フォロー == フォロー状況.フォロー済み);
     public 会員確認結果 会員の回答 => new(会員 == 会員資格.VIP会員);
     public 購入確認結果 購入の回答 => new(購入 == 購入状況.購入済み);
+
+    public override string ToString() => $"{作者との関係}・{フォロー}・{会員}・{購入}";
 }
 
-public sealed record 閲覧の入力(作品の条件 作品, 閲覧者の条件 閲覧者);
+public sealed record 閲覧の入力(作品の条件 作品, 閲覧者の条件 閲覧者)
+{
+    public override string ToString() => $"{作品}／{閲覧者}";
+}
 
 public sealed record 閲覧の期待値(閲覧結果 結果, ImmutableArray<取得する事実> 取得順序)
 {

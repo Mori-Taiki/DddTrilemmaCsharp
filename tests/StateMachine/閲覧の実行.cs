@@ -1,24 +1,23 @@
+using System.Collections.Immutable;
 using Demo.Domain;
 
 namespace Demo.Tests;
 
-public sealed class 閲覧ドメインテスト
+internal static class 閲覧の実行
 {
-    [Theory]
-    [ClassData(typeof(閲覧仕様一覧))]
-    public void 共通の仕様どおりに事実を要求して判定する(閲覧仕様 仕様)
+    public static 閲覧の観測 観測する(閲覧の入力 入力)
     {
-        var story = 仕様.入力.作品.作成する();
-        var reader = 仕様.入力.閲覧者;
+        var story = 入力.作品.作成する();
+        var reader = 入力.閲覧者;
         var decision = 閲覧.開始(story, reader.ID);
         var requested = new List<取得する事実>();
 
-        // 期待する取得回数だけ応答し、その直後に完了することを確認する。
-        // 回答する種類は、期待値ではなく実装が実際に返した要求から選ぶ。
-        for (var step = 0; step < 仕様.期待.取得順序.Length; step++)
+        // 期待値を受け取らず、実際の要求にだけ回答する。
+        // 3種類を一度ずつ取得すれば十分なため、4回目の要求は失敗にする。
+        for (var step = 0; decision is 事実取得待ち waiting; step++)
         {
-            var request = Assert.IsType<事実取得待ち>(decision).要求;
-            decision = request switch
+            Assert.True(step < 3, "閲覧判定が3回の事実取得で完了しませんでした。");
+            decision = waiting.要求 switch
             {
                 フォロー確認が必要 follow => フォローに答える(follow),
                 会員確認が必要 membership => 会員確認に答える(membership),
@@ -26,8 +25,7 @@ public sealed class 閲覧ドメインテスト
             };
         }
 
-        Assert.Equal(仕様.期待.結果, Assert.IsType<判定完了>(decision).結果);
-        Assert.Equal<取得する事実>(仕様.期待.取得順序, requested);
+        return new(Assert.IsType<判定完了>(decision).結果, requested.ToImmutableArray());
 
         閲覧判定 フォローに答える(フォロー確認が必要 request)
         {
