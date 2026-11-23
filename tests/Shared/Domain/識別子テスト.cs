@@ -1,9 +1,8 @@
-using Demo.Api;
 using Demo.Domain;
 
 namespace Demo.Tests;
 
-public sealed class 境界値テスト
+public sealed class 識別子テスト
 {
     [Theory]
     [InlineData(null)]
@@ -26,16 +25,5 @@ public sealed class 境界値テスト
         Assert.Equal(new 利用者ID("author"), new 利用者ID("author"));
         Assert.NotEqual(new 利用者ID("author"), new 利用者ID("reader"));
         Assert.False(new 利用者ID("same").Equals((object)new ストーリーID("same")));
-    }
-
-    [Theory]
-    [InlineData(null)]
-    [InlineData("")]
-    [InlineData("99")]
-    [InlineData("未定義")]
-    public void 不明な選択肢を既存の業務ケースに読み替えない(string? value)
-    {
-        Assert.Null(境界値.公開範囲を読む(value));
-        Assert.Null(境界値.料金を読む(value));
     }
 }
