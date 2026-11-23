@@ -16,20 +16,12 @@
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="11.0.0" />
     <Using Include="Xunit" />
     <Compile
-      Include="$(MSBuildThisFileDirectory)Specifications/**/*.cs"
-      Link="Specifications/%(RecursiveDir)%(Filename)%(Extension)"
+      Include="$(MSBuildThisFileDirectory)Shared/**/*.cs"
+      Link="Shared/%(RecursiveDir)%(Filename)%(Extension)"
     />
     <Compile
-      Include="$(MSBuildThisFileDirectory)Api/**/*.cs"
-      Link="Api/%(RecursiveDir)%(Filename)%(Extension)"
-    />
-    <Compile
-      Include="$(MSBuildThisFileDirectory)Domain/**/*.cs"
-      Link="Domain/%(RecursiveDir)%(Filename)%(Extension)"
-    />
-    <Compile
-      Include="$(MSBuildThisFileDirectory)$(StoryModel)/**/*.cs"
-      Link="$(StoryModel)/%(RecursiveDir)%(Filename)%(Extension)"
+      Include="$(MSBuildThisFileDirectory)StoryModels/$(StoryModel)/**/*.cs"
+      Link="StoryModels/$(StoryModel)/%(RecursiveDir)%(Filename)%(Extension)"
     />
   </ItemGroup>
 </Project>

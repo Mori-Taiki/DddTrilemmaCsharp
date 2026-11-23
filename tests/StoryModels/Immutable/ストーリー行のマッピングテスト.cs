@@ -3,7 +3,7 @@ using Demo.Domain;
 
 namespace Demo.Tests;
 
-public sealed class 不変モデルのマッピングテスト
+public sealed class ストーリー行のマッピングテスト
 {
     [Theory]
     [InlineData("不明な公開範囲", "無料")]
