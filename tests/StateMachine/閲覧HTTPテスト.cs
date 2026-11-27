@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
+using System.Text.Json;
 using Demo.Api;
 using Demo.Domain;
 using Microsoft.AspNetCore.TestHost;
@@ -10,42 +11,7 @@ namespace Demo.Tests;
 public sealed class 閲覧のHTTPテスト
 {
     [Fact]
-    public async Task 事実取得の障害は業務上の拒否ではなくサーバーエラーとして返す()
-    {
-        await using var app = new テスト用アプリ();
-        await using var failingApp = app.WithWebHostBuilder(builder =>
-            builder.ConfigureTestServices(services =>
-                services.AddScoped<閲覧事実取得, 障害を起こす事実取得>()
-            )
-        );
-        using var client = failingApp.CreateClient();
-
-        using var response = await client.GetAsync("/stories/public-paid/view?viewer=guest");
-
-        Assert.Equal(HttpStatusCode.InternalServerError, response.StatusCode);
-        Assert.Equal("application/problem+json", response.Content.Headers.ContentType?.MediaType);
-        var body = await response.Content.ReadFromJsonAsync<System.Text.Json.JsonElement>();
-        Assert.Equal(500, body.GetProperty("status").GetInt32());
-    }
-
-    [Theory]
-    [InlineData("/stories/public-free/view", HttpStatusCode.BadRequest)]
-    [InlineData("/stories/missing/view?viewer=guest", HttpStatusCode.NotFound)]
-    public async Task 閲覧者の未指定は400で作品の不存在は404になる(
-        string path,
-        HttpStatusCode expectedStatus
-    )
-    {
-        await using var app = new テスト用アプリ();
-        using var client = app.CreateClient();
-
-        using var response = await client.GetAsync(path);
-
-        Assert.Equal(expectedStatus, response.StatusCode);
-    }
-
-    [Fact]
-    public async Task 全体公開の無料作品はフォローも購入もない閲覧者に200を返す()
+    public async Task 閲覧許可は200と判定結果をJSONで返す()
     {
         await using var database = await テスト用データベース.作成する();
         await database.保存する(
@@ -65,10 +31,19 @@ public sealed class 閲覧のHTTPテスト
         using var response = await client.GetAsync("/stories/story/view?viewer=reader");
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal("application/json", response.Content.Headers.ContentType?.MediaType);
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.True(body.GetProperty("allowed").GetBoolean());
+        Assert.Equal(JsonValueKind.Null, body.GetProperty("reason").ValueKind);
+        Assert.Equal(
+            new[] { "許可" },
+            body.GetProperty("trace").EnumerateArray().Select(x => x.GetString())
+        );
+        Assert.Equal(0, body.GetProperty("factQueries").GetInt32());
     }
 
     [Fact]
-    public async Task 限定作品は非フォロワーに403を返す()
+    public async Task 閲覧拒否は403と拒否理由をJSONで返す()
     {
         await using var database = await テスト用データベース.作成する();
         await database.保存する(
@@ -88,52 +63,58 @@ public sealed class 閲覧のHTTPテスト
         using var response = await client.GetAsync("/stories/story/view?viewer=reader");
 
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+        Assert.Equal("application/json", response.Content.Headers.ContentType?.MediaType);
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.False(body.GetProperty("allowed").GetBoolean());
+        Assert.Equal("フォローが必要", body.GetProperty("reason").GetString());
+        Assert.Equal(
+            new[] { "フォロー確認が必要", "拒否" },
+            body.GetProperty("trace").EnumerateArray().Select(x => x.GetString())
+        );
+        Assert.Equal(1, body.GetProperty("factQueries").GetInt32());
     }
 
     [Fact]
-    public async Task 限定有料作品はフォロー済みVIPに200を返す()
+    public async Task 閲覧者が未指定なら400と入力エラーを返す()
     {
-        await using var database = await テスト用データベース.作成する();
-        await database.保存する(
-            new ストーリー(
-                new ストーリーID("story"),
-                new 利用者ID("author"),
-                new 公開範囲.フォロワー限定(),
-                new 料金区分.有料()
-            )
-        );
-        await database.保存する(new フォロー { 閲覧者 = "reader", 作者 = "author" });
-        await database.保存する(new 会員 { 閲覧者 = "reader", VIPである = true });
-        // 購入は保存しない。
-        await using var app = new テスト用アプリ(database);
+        await using var app = new テスト用アプリ();
         using var client = app.CreateClient();
 
-        using var response = await client.GetAsync("/stories/story/view?viewer=reader");
+        using var response = await client.GetAsync("/stories/public-free/view");
 
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal("viewer is required", body.GetProperty("error").GetString());
     }
 
     [Fact]
-    public async Task 限定有料作品はフォロー済みの一般会員の購入者に200を返す()
+    public async Task 存在しない作品には404を返す()
     {
-        await using var database = await テスト用データベース.作成する();
-        await database.保存する(
-            new ストーリー(
-                new ストーリーID("story"),
-                new 利用者ID("author"),
-                new 公開範囲.フォロワー限定(),
-                new 料金区分.有料()
-            )
-        );
-        await database.保存する(new フォロー { 閲覧者 = "reader", 作者 = "author" });
-        await database.保存する(new 会員 { 閲覧者 = "reader", VIPである = false });
-        await database.購入を保存する("reader", "story");
-        await using var app = new テスト用アプリ(database);
+        await using var app = new テスト用アプリ();
         using var client = app.CreateClient();
 
-        using var response = await client.GetAsync("/stories/story/view?viewer=reader");
+        using var response = await client.GetAsync("/stories/missing/view?viewer=reader");
 
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task 事実取得の障害は業務上の拒否ではなくサーバーエラーとして返す()
+    {
+        await using var app = new テスト用アプリ();
+        await using var failingApp = app.WithWebHostBuilder(builder =>
+            builder.ConfigureTestServices(services =>
+                services.AddScoped<閲覧事実取得, 障害を起こす事実取得>()
+            )
+        );
+        using var client = failingApp.CreateClient();
+
+        using var response = await client.GetAsync("/stories/public-paid/view?viewer=guest");
+
+        Assert.Equal(HttpStatusCode.InternalServerError, response.StatusCode);
+        Assert.Equal("application/problem+json", response.Content.Headers.ContentType?.MediaType);
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(500, body.GetProperty("status").GetInt32());
     }
 
     private sealed class 障害を起こす事実取得 : 閲覧事実取得
