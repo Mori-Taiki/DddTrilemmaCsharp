@@ -6,7 +6,7 @@ namespace Demo.Tests;
 public sealed class 変更追跡テスト
 {
     [Fact]
-    public async Task 取得したドメインの変更をSaveChangesだけで保存し別のコンテキストから復元できる()
+    public async Task 取得したストーリーの変更をSaveChangesだけで保存し別のコンテキストから読み直せる()
     {
         await using var database = await テスト用データベース.作成する();
         await database.保存する(
@@ -25,7 +25,7 @@ public sealed class 変更追跡テスト
                 new 公開範囲.フォロワー限定(),
                 new 利用者ID("author")
             );
-            Assert.IsType<変更できた>(result);
+            Assert.IsType<変更完了>(result);
             await db.SaveChangesAsync();
         }
 
@@ -33,7 +33,7 @@ public sealed class 変更追跡テスト
         var saved = await verification.ストーリー一覧.SingleAsync();
         Assert.Equal(new ストーリーID("story"), saved.ID);
         Assert.Equal(new 利用者ID("author"), saved.作者);
-        Assert.Equal(new 料金区分.有料(), saved.料金);
+        Assert.Equal(new 料金区分.有料(), saved.料金区分);
         Assert.Equal(new 公開範囲.フォロワー限定(), saved.公開範囲);
     }
 
@@ -61,7 +61,7 @@ public sealed class 変更追跡テスト
         {
             var story = await db.ストーリー一覧.SingleAsync();
             var result = story.公開範囲を変える(
-                Demo.Api.境界値.公開範囲を読む(visibility)!,
+                Demo.Api.境界変換.公開範囲に変換する(visibility)!,
                 new 利用者ID(actor)
             );
             Assert.True(result == new 変更拒否(expectedReason), caseName);
@@ -74,7 +74,7 @@ public sealed class 変更追跡テスト
     }
 
     [Fact]
-    public async Task SaveChangesを呼ばなければドメインを変更してもDBは変わらない()
+    public async Task SaveChangesを呼ばなければストーリーを変更してもDBは変わらない()
     {
         await using var database = await テスト用データベース.作成する();
         await database.保存する(
@@ -98,7 +98,7 @@ public sealed class 変更追跡テスト
     }
 
     [Fact]
-    public async Task 追跡しないQueryで取得したオブジェクトの変更は保存されない()
+    public async Task 追跡なしで取得したストーリーの変更は保存されない()
     {
         await using var database = await テスト用データベース.作成する();
         await database.保存する(
@@ -124,14 +124,17 @@ public sealed class 変更追跡テスト
 
     [Theory]
     [InlineData("不明な公開範囲", "無料")]
-    [InlineData("全体公開", "不明な料金")]
-    public async Task DBの不正な列値は読み取り時に拒否する(string visibility, string price)
+    [InlineData("全体公開", "不明な料金区分")]
+    public async Task DBに不正な値がある場合は読み取り時に例外になる(
+        string visibility,
+        string price
+    )
     {
         await using var database = await テスト用データベース.作成する();
         await using var db = database.CreateDbContext();
         await db.Database.ExecuteSqlAsync(
             $"""
-            INSERT INTO "ストーリー一覧" ("ID", "作者", "公開範囲", "料金")
+            INSERT INTO "ストーリー一覧" ("ID", "作者", "公開範囲", "料金区分")
             VALUES ('story', 'author', {visibility}, {price})
             """
         );

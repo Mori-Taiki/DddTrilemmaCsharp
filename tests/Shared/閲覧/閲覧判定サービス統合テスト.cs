@@ -10,13 +10,15 @@ public sealed class 閲覧判定サービス統合テスト
     public async Task 共通の仕様どおりに保存された事実から判定する(閲覧仕様 仕様)
     {
         await using var database = await テスト用データベース.作成する();
-        var story = 仕様.入力.作品.作成する();
+        var story = 仕様.入力.ストーリー.作成する();
         var reader = 仕様.入力.閲覧者;
         await database.保存する(story);
         if (reader.フォロー == フォロー状況.フォロー済み)
-            await database.保存する(new フォロー { 閲覧者 = reader.ID.値, 作者 = story.作者.値 });
+            await database.保存する(
+                new フォロー { フォロワーID = reader.ID.値, 作者ID = story.作者.値 }
+            );
         await database.保存する(
-            new 会員 { 閲覧者 = reader.ID.値, VIPである = reader.会員 == 会員資格.VIP会員 }
+            new 会員 { 利用者ID = reader.ID.値, VIPである = reader.会員 == 会員資格.VIP会員 }
         );
         if (reader.購入 == 購入状況.購入済み)
             await database.購入を保存する(reader.ID.値, story.ID.値);
@@ -38,7 +40,7 @@ public sealed class 閲覧判定サービス統合テスト
     [Theory]
     [InlineData("story", true)]
     [InlineData("other", false)]
-    public async Task 対象作品だけの購入と別作品だけの購入を区別する(
+    public async Task 対象ストーリーだけの購入と別ストーリーだけの購入を区別する(
         string purchasedStoryId,
         bool expectedAllowed
     )
@@ -57,7 +59,7 @@ public sealed class 閲覧判定サービス統合テスト
             new 料金区分.有料()
         );
         await database.保存する(story, other);
-        // 両作品を購入したデータでは、作品IDの比較を反転しても検出できない。
+        // 両ストーリーを購入したデータでは、ストーリーIDの比較を反転しても検出できない。
         await database.購入を保存する("reader", purchasedStoryId);
         var service = new 閲覧判定サービス(new EfCore閲覧事実取得(database));
 
@@ -68,7 +70,7 @@ public sealed class 閲覧判定サービス統合テスト
     }
 
     [Fact]
-    public async Task 他人や別作品の事実は閲覧許可に流用されない()
+    public async Task 他人や別ストーリーの事実は閲覧許可に流用されない()
     {
         await using var database = await テスト用データベース.作成する();
         var story = new ストーリー(
@@ -84,7 +86,7 @@ public sealed class 閲覧判定サービス統合テスト
             new 料金区分.有料()
         );
         await database.保存する(story, other);
-        await database.保存する(new 会員 { 閲覧者 = "someone-else", VIPである = true });
+        await database.保存する(new 会員 { 利用者ID = "someone-else", VIPである = true });
         await database.購入を保存する("someone-else", "story");
         await database.購入を保存する("reader", "other");
         var service = new 閲覧判定サービス(new EfCore閲覧事実取得(database));
@@ -107,8 +109,8 @@ public sealed class 閲覧判定サービス統合テスト
         );
         await database.保存する(
             story,
-            new フォロー { 閲覧者 = "reader", 作者 = "someone-else" },
-            new フォロー { 閲覧者 = "someone-else", 作者 = "author" }
+            new フォロー { フォロワーID = "reader", 作者ID = "someone-else" },
+            new フォロー { フォロワーID = "someone-else", 作者ID = "author" }
         );
         var service = new 閲覧判定サービス(new EfCore閲覧事実取得(database));
 

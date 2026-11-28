@@ -2,10 +2,10 @@ using Demo.Domain;
 
 namespace Demo.Api;
 
-// 文字列を扱うHTTP・DB境界。ドメインには文字列の列挙値を持ち込まない。
-public static class 境界値
+// 文字列を扱うHTTP・DB境界の変換。ドメインには文字列表現を持ち込まない。
+public static class 境界変換
 {
-    public static 公開範囲? 公開範囲を読む(string? value) =>
+    public static 公開範囲? 公開範囲に変換する(string? value) =>
         value switch
         {
             "全体公開" => new 公開範囲.全体公開(),
@@ -13,7 +13,7 @@ public static class 境界値
             _ => null,
         };
 
-    public static 料金区分? 料金を読む(string? value) =>
+    public static 料金区分? 料金区分に変換する(string? value) =>
         value switch
         {
             "無料" => new 料金区分.無料(),

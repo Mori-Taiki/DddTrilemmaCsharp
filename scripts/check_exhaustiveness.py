@@ -12,13 +12,13 @@ dotnet = str(Path(sys.argv[1]).resolve()) if len(sys.argv) > 1 else "dotnet"
 def check(implementation, variant, model, setter_diagnostic):
     src = root / "src" / implementation
     model = f"{implementation}/{model}"
-    resume = "結果" if implementation == "StateMachine" else "続ける"
+    resume = "再開する"
     with tempfile.TemporaryDirectory(prefix="ddd-type-check-") as directory:
         target = Path(directory)
         for source in (src / "Domain").glob("*.cs"):
             shutil.copy(source, target)
         shutil.copy(src / "Domain" / variant / "ストーリー.cs", target)
-        for name in ["境界値.cs", "閲覧判定サービス.cs"]:
+        for name in ["境界変換.cs", "閲覧判定サービス.cs"]:
             shutil.copy(src / "Api" / name, target)
         shutil.copy(root / "global.json", target / "global.json")
         project = target / "Probe.csproj"
@@ -54,14 +54,14 @@ def check(implementation, variant, model, setter_diagnostic):
 
         invalid_operations = [
             ("利用者IDとストーリーIDは取り違えられない",
-             "public static void Run(ストーリー story) => 閲覧.開始(story, new ストーリーID(\"s\"));", "CS1503"),
+             "public static void Run(ストーリー story) => 閲覧判定.開始(story, new ストーリーID(\"s\"));", "CS1503"),
             ("公開範囲を外から直接書き換えられない",
              "public static void Run(ストーリー story) { story.公開範囲 = new 公開範囲.全体公開(); }", setter_diagnostic),
         ]
 
         fact_sources = [
             ("フォロー確認が必要", "facts.フォローしているか(new 利用者ID(\"reader\"), new 利用者ID(\"author\"), default)"),
-            ("会員確認が必要", "facts.VIPか(request.閲覧者, default)"),
+            ("VIP会員確認が必要", "facts.VIP会員か(request.閲覧者, default)"),
             ("購入確認が必要", "facts.購入済みか(new 利用者ID(\"reader\"), new ストーリーID(\"story\"), default)"),
         ]
         for request_type, _ in fact_sources:

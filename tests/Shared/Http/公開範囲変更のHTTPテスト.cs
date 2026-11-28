@@ -50,7 +50,7 @@ public sealed class 公開範囲変更のHTTPテスト
     }
 
     [Fact]
-    public async Task 同じ公開範囲への変更は競合として返される()
+    public async Task 同じ公開範囲への変更は競合エラーになる()
     {
         await using var app = new テスト用アプリ();
         using var client = app.CreateClient();
@@ -69,7 +69,7 @@ public sealed class 公開範囲変更のHTTPテスト
     [InlineData("未知の公開範囲", "{\"actor\":\"author\",\"visibility\":\"作者限定\"}")]
     [InlineData("空の実行者", "{\"actor\":\" \",\"visibility\":\"全体公開\"}")]
     [InlineData("公開範囲が未指定", "{\"actor\":\"author\"}")]
-    [InlineData("未定義の公開範囲", "{\"actor\":\"author\",\"visibility\":99}")]
+    [InlineData("数値の公開範囲", "{\"actor\":\"author\",\"visibility\":99}")]
     [InlineData("実行者が未指定", "{\"visibility\":\"全体公開\"}")]
     public async Task 不正な変更要求は入力エラーになる(string caseName, string json)
     {

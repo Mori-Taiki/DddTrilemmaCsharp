@@ -16,12 +16,12 @@ public sealed class 公開範囲変更テスト
 
         var result = story.公開範囲を変える(new 公開範囲.フォロワー限定(), new 利用者ID("author"));
 
-        var changed = Assert.IsType<変更できた>(result);
+        var changed = Assert.IsType<変更完了>(result);
         Assert.Equal(new 公開範囲.フォロワー限定(), changed.変更後.公開範囲);
         Assert.Equal(new 公開範囲.全体公開(), story.公開範囲);
         Assert.Equal(story.ID, changed.変更後.ID);
         Assert.Equal(story.作者, changed.変更後.作者);
-        Assert.Equal(story.料金, changed.変更後.料金);
+        Assert.Equal(story.料金区分, changed.変更後.料金区分);
         Assert.Equal(
             result,
             story.公開範囲を変える(new 公開範囲.フォロワー限定(), new 利用者ID("author"))

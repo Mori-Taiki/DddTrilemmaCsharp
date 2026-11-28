@@ -12,7 +12,7 @@ public sealed record 利用者ID
         値 = value;
     }
 
-    public static bool 作成できる(string? value, [NotNullWhen(true)] out 利用者ID? id)
+    public static bool 作成を試みる(string? value, [NotNullWhen(true)] out 利用者ID? id)
     {
         id = string.IsNullOrWhiteSpace(value) ? null : new(value);
         return id is not null;
@@ -29,7 +29,7 @@ public sealed record ストーリーID
         値 = value;
     }
 
-    public static bool 作成できる(string? value, [NotNullWhen(true)] out ストーリーID? id)
+    public static bool 作成を試みる(string? value, [NotNullWhen(true)] out ストーリーID? id)
     {
         id = string.IsNullOrWhiteSpace(value) ? null : new(value);
         return id is not null;

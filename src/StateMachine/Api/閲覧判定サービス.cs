@@ -10,7 +10,7 @@ public interface 閲覧事実取得
         利用者ID author,
         CancellationToken ct
     );
-    Task<会員確認結果> VIPか(利用者ID viewer, CancellationToken ct);
+    Task<VIP会員確認結果> VIP会員か(利用者ID viewer, CancellationToken ct);
     Task<購入確認結果> 購入済みか(利用者ID viewer, ストーリーID storyId, CancellationToken ct);
 }
 
@@ -30,7 +30,7 @@ public sealed class 閲覧判定サービス(閲覧事実取得 facts)
     )
     {
         var trace = new List<string>();
-        var result = await 解釈する(閲覧.開始(story, viewer), trace, ct);
+        var result = await 解釈する(閲覧判定.開始(story, viewer), trace, ct);
         return result switch
         {
             許可 => new(true, null, trace.ToArray(), trace.Count - 1),
@@ -42,7 +42,7 @@ public sealed class 閲覧判定サービス(閲覧事実取得 facts)
         decision switch
         {
             判定完了 completed => 完了する(completed.結果, trace),
-            事実取得待ち pending => 続ける(pending.要求, trace, ct),
+            事実取得待ち pending => 事実を取得する(pending.要求, trace, ct),
         };
 
     private static Task<閲覧結果> 完了する(閲覧結果 result, List<string> trace)
@@ -51,17 +51,21 @@ public sealed class 閲覧判定サービス(閲覧事実取得 facts)
         return Task.FromResult(result);
     }
 
-    private async Task<閲覧結果> 続ける(事実要求 request, List<string> trace, CancellationToken ct)
+    private async Task<閲覧結果> 事実を取得する(
+        事実要求 request,
+        List<string> trace,
+        CancellationToken ct
+    )
     {
         ct.ThrowIfCancellationRequested();
         trace.Add(request.GetType().Name);
         var next = request switch
         {
-            フォロー確認が必要 n => n.結果(
+            フォロー確認が必要 n => n.再開する(
                 await facts.フォローしているか(n.閲覧者, n.対象.作者, ct)
             ),
-            会員確認が必要 n => n.結果(await facts.VIPか(n.閲覧者, ct)),
-            購入確認が必要 n => n.結果(await facts.購入済みか(n.閲覧者, n.対象.ID, ct)),
+            VIP会員確認が必要 n => n.再開する(await facts.VIP会員か(n.閲覧者, ct)),
+            購入確認が必要 n => n.再開する(await facts.購入済みか(n.閲覧者, n.対象.ID, ct)),
         };
         return await 解釈する(next, trace, ct);
     }

@@ -30,10 +30,18 @@ public sealed class 閲覧のHTTPテスト
 
     [Theory]
     [InlineData("閲覧者が未指定", "/stories/public-free/view", HttpStatusCode.BadRequest)]
-    [InlineData("存在しない作品", "/stories/missing/view?viewer=guest", HttpStatusCode.NotFound)]
-    [InlineData("無料公開の閲覧", "/stories/public-free/view?viewer=guest", HttpStatusCode.OK)]
     [InlineData(
-        "非フォロワーの限定作品閲覧",
+        "存在しないストーリー",
+        "/stories/missing/view?viewer=guest",
+        HttpStatusCode.NotFound
+    )]
+    [InlineData(
+        "全体公開の無料ストーリーの閲覧",
+        "/stories/public-free/view?viewer=guest",
+        HttpStatusCode.OK
+    )]
+    [InlineData(
+        "非フォロワーによるフォロワー限定ストーリーの閲覧",
         "/stories/followers-paid/view?viewer=guest",
         HttpStatusCode.Forbidden
     )]
@@ -69,7 +77,7 @@ public sealed class 閲覧のHTTPテスト
             CancellationToken ct
         ) => throw new IOException();
 
-        public Task<会員確認結果> VIPか(利用者ID viewer, CancellationToken ct) =>
+        public Task<VIP会員確認結果> VIP会員か(利用者ID viewer, CancellationToken ct) =>
             throw new IOException();
 
         public Task<購入確認結果> 購入済みか(
