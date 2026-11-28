@@ -29,8 +29,8 @@ public sealed class 閲覧判定サービス異常系テスト
         var story = new ストーリー(
             new ストーリーID("story"),
             new 利用者ID("author"),
-            境界値.公開範囲を読む(visibility)!,
-            境界値.料金を読む(price)!
+            境界変換.公開範囲に変換する(visibility)!,
+            境界変換.料金区分に変換する(price)!
         );
         // 呼び出されるとIOExceptionになる取得先でも、先にキャンセルされる。
         var service = new 閲覧判定サービス(new 障害を起こす事実取得());
@@ -53,7 +53,7 @@ public sealed class 閲覧判定サービス異常系テスト
             CancellationToken ct
         ) => throw new IOException();
 
-        public Task<会員確認結果> VIPか(利用者ID viewer, CancellationToken ct) =>
+        public Task<VIP会員確認結果> VIP会員か(利用者ID viewer, CancellationToken ct) =>
             throw new IOException();
 
         public Task<購入確認結果> 購入済みか(

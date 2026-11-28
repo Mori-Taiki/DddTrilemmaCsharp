@@ -25,7 +25,7 @@ public sealed class 案内と一覧のHTTPテスト
     }
 
     [Fact]
-    public async Task 一覧は作品IDの昇順で全作品を返す()
+    public async Task 一覧はストーリーIDの昇順で全ストーリーを返す()
     {
         await using var app = new テスト用アプリ();
         using var client = app.CreateClient();

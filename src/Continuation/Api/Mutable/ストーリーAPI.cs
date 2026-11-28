@@ -5,7 +5,7 @@ namespace Demo.Api;
 
 public static class ストーリーAPI
 {
-    public static void 登録する(this WebApplication app)
+    public static void ストーリーAPIを登録する(this WebApplication app)
     {
         app.MapGet("/stories", async (AppDb db, CancellationToken ct) =>
         {
@@ -14,8 +14,8 @@ public static class ストーリーAPI
             {
                 id = story.ID.値,
                 authorId = story.作者.値,
-                visibility = 境界値.文字列にする(story.公開範囲),
-                price = 境界値.文字列にする(story.料金),
+                visibility = 境界変換.文字列にする(story.公開範囲),
+                price = 境界変換.文字列にする(story.料金区分),
             });
         });
 
@@ -31,8 +31,8 @@ public static class ストーリーAPI
             ) =>
             {
                 if (
-                    !利用者ID.作成できる(viewer, out var viewerId)
-                    || !ストーリーID.作成できる(id, out var storyId)
+                    !利用者ID.作成を試みる(viewer, out var viewerId)
+                    || !ストーリーID.作成を試みる(id, out var storyId)
                 )
                     return Results.BadRequest(new { error = "viewer is required" });
 
@@ -62,10 +62,10 @@ public static class ストーリーAPI
                 CancellationToken ct
             ) =>
             {
-                var visibility = 境界値.公開範囲を読む(request.公開範囲);
+                var visibility = 境界変換.公開範囲に変換する(request.公開範囲);
                 if (
-                    !利用者ID.作成できる(request.実行者, out var actor)
-                    || !ストーリーID.作成できる(id, out var storyId)
+                    !利用者ID.作成を試みる(request.実行者, out var actor)
+                    || !ストーリーID.作成を試みる(id, out var storyId)
                     || visibility is null
                 )
                     return Results.BadRequest(
@@ -78,13 +78,13 @@ public static class ストーリーAPI
                     return Results.NotFound();
 
                 var result = story.公開範囲を変える(visibility, actor);
-                if (result is 変更できた)
+                if (result is 変更完了)
                     await db.SaveChangesAsync(ct);
 
                 return result switch
                 {
-                    変更できた => Results.Ok(
-                        new { id = story.ID.値, visibility = 境界値.文字列にする(story.公開範囲) }
+                    変更完了 => Results.Ok(
+                        new { id = story.ID.値, visibility = 境界変換.文字列にする(story.公開範囲) }
                     ),
                     変更拒否 denied => Results.Json(
                         new { reason = denied.理由 },

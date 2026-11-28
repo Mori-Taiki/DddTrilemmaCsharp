@@ -9,11 +9,11 @@ public sealed class 識別子テスト
     [InlineData("")]
     [InlineData("  ")]
     [InlineData("\t\n")]
-    public void 空の識別子はドメインに入れない(string? value)
+    public void 空白や空文字からは識別子を作成できない(string? value)
     {
-        Assert.False(利用者ID.作成できる(value, out var userId));
+        Assert.False(利用者ID.作成を試みる(value, out var userId));
         Assert.Null(userId);
-        Assert.False(ストーリーID.作成できる(value, out var storyId));
+        Assert.False(ストーリーID.作成を試みる(value, out var storyId));
         Assert.Null(storyId);
         Assert.ThrowsAny<ArgumentException>(() => new 利用者ID(value!));
         Assert.ThrowsAny<ArgumentException>(() => new ストーリーID(value!));

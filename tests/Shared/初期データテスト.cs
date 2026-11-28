@@ -12,9 +12,9 @@ public sealed class 初期データテスト
         await using (var db = database.CreateDbContext())
         {
             await 初期データ.投入する(db);
-            var member = await db.会員一覧.SingleAsync(x => x.閲覧者 == "vip");
+            var member = await db.会員一覧.SingleAsync(x => x.利用者ID == "vip");
             member.VIPである = false;
-            db.購入一覧.Remove(await db.購入一覧.FirstAsync());
+            db.購入履歴.Remove(await db.購入履歴.FirstAsync());
             await db.SaveChangesAsync();
         }
 
@@ -25,7 +25,7 @@ public sealed class 初期データテスト
         Assert.Equal(4, await verification.ストーリー一覧.CountAsync());
         Assert.Equal(3, await verification.フォロー関係.CountAsync());
         Assert.Equal(1, await verification.会員一覧.CountAsync());
-        Assert.Equal(1, await verification.購入一覧.CountAsync());
+        Assert.Equal(1, await verification.購入履歴.CountAsync());
         Assert.False((await verification.会員一覧.SingleAsync()).VIPである);
     }
 }

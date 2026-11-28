@@ -5,7 +5,7 @@ namespace Demo.Api;
 
 public static class ストーリーAPI
 {
-    public static void 登録する(this WebApplication app)
+    public static void ストーリーAPIを登録する(this WebApplication app)
     {
         app.MapGet("/stories", async (AppDb db, CancellationToken ct) => await db
                 .ストーリー一覧.AsNoTracking()
@@ -15,7 +15,7 @@ public static class ストーリーAPI
                     id = x.ID,
                     authorId = x.作者,
                     visibility = x.公開範囲,
-                    price = x.料金,
+                    price = x.料金区分,
                 })
                 .ToListAsync(ct));
 
@@ -31,18 +31,18 @@ public static class ストーリーAPI
             ) =>
             {
                 if (
-                    !利用者ID.作成できる(viewer, out var viewerId)
-                    || !ストーリーID.作成できる(id, out var storyId)
+                    !利用者ID.作成を試みる(viewer, out var viewerId)
+                    || !ストーリーID.作成を試みる(id, out var storyId)
                 )
                     return Results.BadRequest(new { error = "viewer is required" });
 
-                var story = await db
+                var row = await db
                     .ストーリー一覧.AsNoTracking()
                     .SingleOrDefaultAsync(x => x.ID == storyId.値, ct);
-                if (story is null)
+                if (row is null)
                     return Results.NotFound();
 
-                var result = await service.判定する(story.ドメインに戻す(), viewerId, ct);
+                var result = await service.判定する(row.ストーリーに復元する(), viewerId, ct);
 
                 log.LogInformation(
                     "Decision {Trace}; fact queries={Count} (story load excluded)",
@@ -63,10 +63,10 @@ public static class ストーリーAPI
                 CancellationToken ct
             ) =>
             {
-                var visibility = 境界値.公開範囲を読む(request.公開範囲);
+                var visibility = 境界変換.公開範囲に変換する(request.公開範囲);
                 if (
-                    !利用者ID.作成できる(request.実行者, out var actor)
-                    || !ストーリーID.作成できる(id, out var storyId)
+                    !利用者ID.作成を試みる(request.実行者, out var actor)
+                    || !ストーリーID.作成を試みる(id, out var storyId)
                     || visibility is null
                 )
                     return Results.BadRequest(
@@ -77,21 +77,21 @@ public static class ストーリーAPI
                 if (row is null)
                     return Results.NotFound();
 
-                var story = row.ドメインに戻す();
+                var story = row.ストーリーに復元する();
                 var result = story.公開範囲を変える(visibility, actor);
-                if (result is 変更できた changed)
+                if (result is 変更完了 changed)
                 {
-                    row.適用する(changed.変更後);
+                    row.反映する(changed.変更後);
                     await db.SaveChangesAsync(ct);
                 }
 
                 return result switch
                 {
-                    変更できた success => Results.Ok(
+                    変更完了 success => Results.Ok(
                         new
                         {
                             id = success.変更後.ID.値,
-                            visibility = 境界値.文字列にする(success.変更後.公開範囲),
+                            visibility = 境界変換.文字列にする(success.変更後.公開範囲),
                         }
                     ),
                     変更拒否 d => Results.Json(

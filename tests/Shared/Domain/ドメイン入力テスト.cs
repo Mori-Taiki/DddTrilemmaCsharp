@@ -24,12 +24,12 @@ public sealed class ドメイン入力テスト
     [Theory]
     [InlineData("story")]
     [InlineData("viewer")]
-    public void 必須の値が欠けた閲覧要求は判定を開始できない(string missingParameter)
+    public void 必須の値が欠けている場合は閲覧判定を開始できない(string missingParameter)
     {
-        var story = 作成する();
+        var story = ストーリーを作成する();
 
         Assert.Throws<ArgumentNullException>(missingParameter, () =>
-            閲覧.開始(
+            閲覧判定.開始(
                 missingParameter == "story" ? null! : story,
                 missingParameter == "viewer" ? null! : new 利用者ID("reader")
             )
@@ -39,9 +39,9 @@ public sealed class ドメイン入力テスト
     [Theory]
     [InlineData("newVisibility")]
     [InlineData("actor")]
-    public void nullを渡した変更では現在の状態を壊さない(string missingParameter)
+    public void 公開範囲の変更にnullを渡しても現在の状態を壊さない(string missingParameter)
     {
-        var story = 作成する();
+        var story = ストーリーを作成する();
 
         Assert.Throws<ArgumentNullException>(missingParameter, () =>
             story.公開範囲を変える(
@@ -53,10 +53,10 @@ public sealed class ドメイン入力テスト
         Assert.Equal(new ストーリーID("story"), story.ID);
         Assert.Equal(new 利用者ID("author"), story.作者);
         Assert.Equal(new 公開範囲.全体公開(), story.公開範囲);
-        Assert.Equal(new 料金区分.無料(), story.料金);
+        Assert.Equal(new 料金区分.無料(), story.料金区分);
     }
 
-    private static ストーリー 作成する() =>
+    private static ストーリー ストーリーを作成する() =>
         new(
             new ストーリーID("story"),
             new 利用者ID("author"),

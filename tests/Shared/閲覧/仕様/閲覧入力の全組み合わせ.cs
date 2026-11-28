@@ -3,9 +3,9 @@ using Demo.Domain;
 namespace Demo.Tests;
 
 // 有限な入力空間をすべて生成する。期待値やドメインの判断処理は使わない。
-public sealed class 閲覧入力の全組合せ : TheoryData<閲覧の入力>
+public sealed class 閲覧入力の全組み合わせ : TheoryData<閲覧の入力>
 {
-    public 閲覧入力の全組合せ()
+    public 閲覧入力の全組み合わせ()
     {
         foreach (var input in 列挙する())
             Add(input);
